@@ -1,28 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
-}
-
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AuthContextType, AuthProviderProps, User } from '../types/auth';
+import { AuthService } from '../services/authService';
+import { parseErrorMessage } from '../utils/errorHandler';
+import { AUTH_CONFIG } from '../constants/config';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,35 +14,23 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-const API_BASE_URL = 'http://localhost:8003/api/v1';
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem(AUTH_CONFIG.TOKEN_KEY));
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!token && !!user;
 
-  // Set up axios interceptor for authentication
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
+    AuthService.setAuthToken(token);
   }, [token]);
 
-  // Check if user is authenticated on app start
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
         try {
-          const response = await axios.get<User>(`${API_BASE_URL}/auth/me`);
-          setUser(response.data);
+          const userData = await AuthService.getCurrentUser();
+          setUser(userData);
         } catch (error) {
           console.error('Authentication check failed:', error);
           logout();
@@ -76,85 +44,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post<LoginResponse>(`${API_BASE_URL}/auth/login`, {
-        email,
-        password,
-      });
-
-      const { access_token } = response.data;
+      const loginResponse = await AuthService.login({ email, password });
+      const { access_token } = loginResponse;
+      
       setToken(access_token);
-      localStorage.setItem('token', access_token);
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, access_token);
 
-      // Get user info
-      const userResponse = await axios.get<User>(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
-      setUser(userResponse.data);
+      AuthService.setAuthToken(access_token);
+      const userData = await AuthService.getCurrentUser();
+      setUser(userData);
     } catch (error: any) {
       console.error('Login failed:', error);
-      
-      // Handle different types of errors
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        // Handle validation errors (array of error objects)
-        if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail
-            .map((err: any) => err.msg || err.message || 'Validation error')
-            .join(', ');
-        } 
-        // Handle simple string errors
-        else if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail;
-        }
-        // Handle general error objects
-        else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      }
-      
+      const errorMessage = parseErrorMessage(error);
       const customError = new Error(errorMessage);
       (customError as any).response = { data: { detail: errorMessage } };
       throw customError;
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (name: string, email: string, password: string) => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/register`, {
-        email,
-        password,
-      });
-
-      // Auto-login after registration
+      await AuthService.register({ name, email, password });
       await login(email, password);
     } catch (error: any) {
       console.error('Registration failed:', error);
-      
-      // Handle different types of errors
-      let errorMessage = 'Registration failed. Please try again.';
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        // Handle validation errors (array of error objects)
-        if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail
-            .map((err: any) => err.msg || err.message || 'Validation error')
-            .join(', ');
-        } 
-        // Handle simple string errors
-        else if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail;
-        }
-        // Handle general error objects
-        else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      }
-      
+      const errorMessage = parseErrorMessage(error);
       const customError = new Error(errorMessage);
       (customError as any).response = { data: { detail: errorMessage } };
       throw customError;
@@ -164,18 +78,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+    AuthService.setAuthToken(null);
   };
 
   const value: AuthContextType = {
     user,
     token,
     isAuthenticated,
+    loading,
     login,
     register,
     logout,
-    loading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

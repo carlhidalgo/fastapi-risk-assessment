@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ROUTES } from '../constants/config';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 
 const Navbar: React.FC = () => {
@@ -29,26 +30,26 @@ const Navbar: React.FC = () => {
   const handleLogout = () => {
     logout();
     handleClose();
-    navigate('/login');
+    navigate(ROUTES.LOGIN);
   };
 
   return (
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Risk Assessment Platform
+          Plataforma de Evaluación de Riesgos
         </Typography>
 
         {isAuthenticated ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button color="inherit" component={Link} to="/dashboard">
-              Dashboard
+            <Button color="inherit" component={Link} to={ROUTES.DASHBOARD}>
+              Panel
             </Button>
-            <Button color="inherit" component={Link} to="/companies">
-              Companies
+            <Button color="inherit" component={Link} to={ROUTES.COMPANIES}>
+              Empresas
             </Button>
-            <Button color="inherit" component={Link} to="/risk-assessment">
-              Risk Assessment
+            <Button color="inherit" component={Link} to={ROUTES.RISK_ASSESSMENT}>
+              Evaluación de Riesgos
             </Button>
             
             <div>
@@ -80,17 +81,17 @@ const Navbar: React.FC = () => {
                 <MenuItem onClick={handleClose}>
                   <Typography>{user?.email}</Typography>
                 </MenuItem>
-                <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                <MenuItem onClick={handleLogout}>Cerrar Sesión</MenuItem>
               </Menu>
             </div>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button color="inherit" component={Link} to="/login">
-              Login
+            <Button color="inherit" component={Link} to={ROUTES.LOGIN}>
+              Iniciar Sesión
             </Button>
-            <Button color="inherit" component={Link} to="/register">
-              Register
+            <Button color="inherit" component={Link} to={ROUTES.REGISTER}>
+              Registrarse
             </Button>
           </Box>
         )}

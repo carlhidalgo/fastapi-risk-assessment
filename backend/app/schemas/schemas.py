@@ -16,7 +16,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: str
-    name: str
+    full_name: str
     created_at: datetime
     
     class Config:

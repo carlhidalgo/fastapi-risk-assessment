@@ -26,12 +26,12 @@ def create_tables():
         # Test connection first
         with engine.connect() as conn:
             result = conn.execute(text("SELECT version()"))
-            print(f"✅ Database connection successful: {result.fetchone()[0]}")
+            print(f" Database connection successful: {result.fetchone()[0]}")
         
         # Create all tables
-        print("🔨 Creating database tables...")
+        print(" Creating database tables...")
         Base.metadata.create_all(bind=engine)
-        print("✅ All tables created successfully!")
+        print(" All tables created successfully!")
         
         # List created tables
         with engine.connect() as conn:
@@ -47,7 +47,7 @@ def create_tables():
                 print(f"  - {table[0]}")
                 
     except Exception as e:
-        print(f"❌ Error creating tables: {e}")
+        print(f" Error creating tables: {e}")
         return False
     
     return True

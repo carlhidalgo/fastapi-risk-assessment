@@ -10,12 +10,12 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Risk Assessment API with FastAPI, PostgreSQL, and JWT authentication"
     
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "tu_clave_secreta_muy_segura_aqui_cambiala_en_produccion_2025"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = "sqlite:///./fastapi_risk.db"
     
     # Environment
     ENVIRONMENT: str = "development"

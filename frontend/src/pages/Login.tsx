@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ROUTES } from '../constants/config';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -27,9 +28,9 @@ const Login: React.FC = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate(ROUTES.DASHBOARD);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      setError(err.response?.data?.detail || 'Error de inicio de sesión. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ const Login: React.FC = () => {
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
           <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Sign In
+            Iniciar Sesión
           </Typography>
           
           {error && (
@@ -62,7 +63,7 @@ const Login: React.FC = () => {
               required
               fullWidth
               id="email"
-              label="Email Address"
+              label="Correo Electrónico"
               name="email"
               autoComplete="email"
               autoFocus
@@ -75,7 +76,7 @@ const Login: React.FC = () => {
               required
               fullWidth
               name="password"
-              label="Password"
+              label="Contraseña"
               type="password"
               id="password"
               autoComplete="current-password"
@@ -90,11 +91,11 @@ const Login: React.FC = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} /> : 'Iniciar Sesión'}
             </Button>
             <Box textAlign="center">
-              <Link to="/register">
-                {"Don't have an account? Sign Up"}
+              <Link to={ROUTES.REGISTER}>
+                {"¿No tienes una cuenta? Regístrate"}
               </Link>
             </Box>
           </Box>

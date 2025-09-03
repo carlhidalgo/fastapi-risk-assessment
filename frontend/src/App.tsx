@@ -3,10 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ROUTES } from './constants/config';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Companies from './pages/Companies';
+import RiskAssessment from './pages/RiskAssessment';
 
 const theme = createTheme({
   palette: {
@@ -21,12 +24,12 @@ const theme = createTheme({
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  return isAuthenticated ? <>{children}</> : <Navigate to={ROUTES.LOGIN} />;
 };
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" />;
+  return !isAuthenticated ? <>{children}</> : <Navigate to={ROUTES.DASHBOARD} />;
 };
 
 function App() {
@@ -38,9 +41,9 @@ function App() {
           <div className="App">
             <Navbar />
             <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} />} />
               <Route
-                path="/login"
+                path={ROUTES.LOGIN}
                 element={
                   <PublicRoute>
                     <Login />
@@ -48,7 +51,7 @@ function App() {
                 }
               />
               <Route
-                path="/register"
+                path={ROUTES.REGISTER}
                 element={
                   <PublicRoute>
                     <Register />
@@ -56,10 +59,26 @@ function App() {
                 }
               />
               <Route
-                path="/dashboard"
+                path={ROUTES.DASHBOARD}
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.COMPANIES}
+                element={
+                  <ProtectedRoute>
+                    <Companies />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.RISK_ASSESSMENT}
+                element={
+                  <ProtectedRoute>
+                    <RiskAssessment />
                   </ProtectedRoute>
                 }
               />

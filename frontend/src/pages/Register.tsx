@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { ROUTES } from '../constants/config';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -27,17 +28,17 @@ const Register: React.FC = () => {
     setError('');
 
     if (!name.trim()) {
-      setError('Name is required');
+      setError('El nombre es requerido');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
@@ -45,9 +46,9 @@ const Register: React.FC = () => {
 
     try {
       await register(name, email, password);
-      navigate('/dashboard');
+      navigate(ROUTES.DASHBOARD);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      setError(err.response?.data?.detail || 'Error en el registro. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ const Register: React.FC = () => {
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
           <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Sign Up
+            Registrarse
           </Typography>
           
           {error && (
@@ -80,7 +81,7 @@ const Register: React.FC = () => {
               required
               fullWidth
               id="name"
-              label="Full Name"
+              label="Nombre Completo"
               name="name"
               autoComplete="name"
               autoFocus
@@ -93,7 +94,7 @@ const Register: React.FC = () => {
               required
               fullWidth
               id="email"
-              label="Email Address"
+              label="Correo Electrónico"
               name="email"
               autoComplete="email"
               value={email}
@@ -105,7 +106,7 @@ const Register: React.FC = () => {
               required
               fullWidth
               name="password"
-              label="Password"
+              label="Contraseña"
               type="password"
               id="password"
               autoComplete="new-password"
@@ -118,7 +119,7 @@ const Register: React.FC = () => {
               required
               fullWidth
               name="confirmPassword"
-              label="Confirm Password"
+              label="Confirmar Contraseña"
               type="password"
               id="confirmPassword"
               value={confirmPassword}
@@ -132,11 +133,11 @@ const Register: React.FC = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign Up'}
+              {loading ? <CircularProgress size={24} /> : 'Registrarse'}
             </Button>
             <Box textAlign="center">
-              <Link to="/login">
-                {'Already have an account? Sign In'}
+              <Link to={ROUTES.LOGIN}>
+                {'¿Ya tienes una cuenta? Inicia Sesión'}
               </Link>
             </Box>
           </Box>
