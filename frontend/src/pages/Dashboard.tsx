@@ -53,8 +53,8 @@ const Dashboard: React.FC = () => {
         companiesApi.getAll(1)
       ]);
       
-      setRequests(requestsResponse.items || []);
-      setCompanies(companiesResponse.items || []);
+      setRequests((requestsResponse as any).items || []);
+      setCompanies((companiesResponse as any).items || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
