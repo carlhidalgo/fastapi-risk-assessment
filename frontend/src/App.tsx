@@ -7,8 +7,6 @@ import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Companies from './pages/Companies';
-import RiskAssessment from './pages/RiskAssessment';
 
 const theme = createTheme({
   palette: {
@@ -62,22 +60,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/companies"
-                element={
-                  <ProtectedRoute>
-                    <Companies />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/risk-assessment"
-                element={
-                  <ProtectedRoute>
-                    <RiskAssessment />
                   </ProtectedRoute>
                 }
               />
