@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
+    name: str
     password: str
 
 class UserLogin(BaseModel):
@@ -15,6 +16,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: str
+    name: str
     created_at: datetime
     
     class Config:

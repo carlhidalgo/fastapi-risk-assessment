@@ -151,27 +151,37 @@ def read_root():
 @app.post("/api/v1/auth/register", response_model=UserResponse)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create new user
-    hashed_password = hash_password(user_data.password)
-    user = User(
-        email=user_data.email,
-        hashed_password=hashed_password
-    )
-    
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    return UserResponse(
-        id=str(user.id),
-        email=user.email,
-        created_at=user.created_at
-    )
+    try:
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == user_data.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create new user
+        hashed_password = hash_password(user_data.password)
+        user = User(
+            email=user_data.email,
+            hashed_password=hashed_password,
+            full_name=user_data.name
+        )
+        
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            name=user.full_name,
+            created_at=user.created_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in register endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.post("/api/v1/auth/login", response_model=Token)
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
