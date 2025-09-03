@@ -4,6 +4,7 @@ import axios from 'axios';
 interface User {
   id: string;
   email: string;
+  name: string;
   is_active: boolean;
   created_at: string;
 }
@@ -13,7 +14,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -37,7 +38,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const API_BASE_URL = 'http://localhost:8001/api/v1';
+const API_BASE_URL = 'http://localhost:8003/api/v1';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -89,9 +90,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         headers: { Authorization: `Bearer ${access_token}` },
       });
       setUser(userResponse.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      throw error;
+      
+      // Handle different types of errors
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle validation errors (array of error objects)
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail
+            .map((err: any) => err.msg || err.message || 'Validation error')
+            .join(', ');
+        } 
+        // Handle simple string errors
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle general error objects
+        else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+      
+      const customError = new Error(errorMessage);
+      (customError as any).response = { data: { detail: errorMessage } };
+      throw customError;
     }
   };
 
@@ -104,9 +130,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Auto-login after registration
       await login(email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      throw error;
+      
+      // Handle different types of errors
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle validation errors (array of error objects)
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail
+            .map((err: any) => err.msg || err.message || 'Validation error')
+            .join(', ');
+        } 
+        // Handle simple string errors
+        else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        }
+        // Handle general error objects
+        else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      }
+      
+      const customError = new Error(errorMessage);
+      (customError as any).response = { data: { detail: errorMessage } };
+      throw customError;
     }
   };
 
