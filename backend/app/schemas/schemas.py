@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 # User schemas
@@ -9,12 +9,22 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
 class UserResponse(UserBase):
     id: str
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+class UserCompany(BaseModel):
+    id: str
+    name: str
+    industry: str
+    size: str
 
 # Authentication schemas
 class Token(BaseModel):
@@ -40,6 +50,23 @@ class CompanyResponse(CompanyBase):
     
     class Config:
         from_attributes = True
+
+# Risk Assessment schemas
+class RiskRequest(BaseModel):
+    company_id: str
+    amount: float
+    purpose: str
+    annual_revenue: Optional[float] = None
+    employee_count: Optional[int] = None
+    years_in_business: Optional[int] = None
+    debt_to_equity_ratio: Optional[float] = None
+    credit_score: Optional[int] = None
+
+class RiskResponse(BaseModel):
+    risk_level: str
+    risk_score: float
+    recommendations: List[str]
+    approved: bool
 
 # Request schemas
 class RequestBase(BaseModel):
