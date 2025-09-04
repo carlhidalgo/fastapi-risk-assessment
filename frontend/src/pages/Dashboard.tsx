@@ -6,30 +6,38 @@ import {
   Box,
   Card,
   CardContent,
-  Button
+  Button,
+  Chip
 } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { Add, Business, Assessment } from '@mui/icons-material';
+import { Add, Business, Assessment, TrendingUp } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { CompanyService } from '../services/companyService';
+import { RequestService } from '../services/requestService';
 import { Company } from '../types/company';
+import { RiskRequest } from '../types/request';
 import { ROUTES } from '../constants/config';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [recentRequests, setRecentRequests] = useState<RiskRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCompanies();
+    loadData();
   }, []);
 
-  const loadCompanies = async () => {
+  const loadData = async () => {
     try {
-      const companiesData = await CompanyService.getCompanies();
+      const [companiesData, requestsData] = await Promise.all([
+        CompanyService.getCompanies(),
+        RequestService.getRequests({ page: 1, size: 5 })
+      ]);
       setCompanies(companiesData);
+      setRecentRequests(requestsData.items);
     } catch (error) {
-      console.error('Error loading companies:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -37,10 +45,28 @@ const Dashboard: React.FC = () => {
 
   const stats = {
     totalCompanies: companies.length,
+    totalRequests: recentRequests.length,
     averageRevenue: companies.length > 0 
       ? companies.reduce((sum, c) => sum + c.annual_revenue, 0) / companies.length 
       : 0,
-    industries: Array.from(new Set(companies.map(c => c.industry))).length
+    industries: Array.from(new Set(companies.map(c => c.industry))).length,
+    approvedRequests: recentRequests.filter(r => r.approved).length
+  };
+
+  const getRiskLevelColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'bajo':
+      case 'low':
+        return 'success';
+      case 'medio':
+      case 'medium':
+        return 'warning';
+      case 'alto':
+      case 'high':
+        return 'error';
+      default:
+        return 'default';
+    }
   };
 
   return (
@@ -93,14 +119,14 @@ const Dashboard: React.FC = () => {
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
-                <Assessment color="success" sx={{ mr: 1 }} />
-                <Typography variant="h6">Ingresos Promedio</Typography>
+                <TrendingUp color="info" sx={{ mr: 1 }} />
+                <Typography variant="h6">Evaluaciones</Typography>
               </Box>
-              <Typography variant="h3" color="success.main">
-                ${Math.round(stats.averageRevenue / 1000)}K
+              <Typography variant="h3" color="info.main">
+                {stats.totalRequests}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Ingresos anuales promedio
+                Evaluaciones de riesgo realizadas
               </Typography>
             </CardContent>
           </Card>
@@ -141,29 +167,45 @@ const Dashboard: React.FC = () => {
         <Box flex="1" minWidth={400}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h5" gutterBottom>
-              Empresas Recientes
+              Evaluaciones de Riesgo Recientes
             </Typography>
             {loading ? (
               <Typography>Cargando...</Typography>
-            ) : companies.length > 0 ? (
+            ) : recentRequests.length > 0 ? (
               <Box>
-                {companies.slice(-3).reverse().map((company) => (
-                  <Box key={company.id} mb={2} p={2} border="1px solid #e0e0e0" borderRadius={1}>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {company.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {company.industry} • {company.company_size} empleados
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Ingresos: ${company.annual_revenue.toLocaleString()}
-                    </Typography>
-                  </Box>
-                ))}
+                {recentRequests.slice(0, 3).map((request) => {
+                  const company = companies.find(c => c.id.toString() === request.company_id);
+                  return (
+                    <Box key={request.id} mb={2} p={2} border="1px solid #e0e0e0" borderRadius={1}>
+                      <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {company?.name || 'Empresa Desconocida'}
+                        </Typography>
+                        <Chip
+                          label={request.risk_level}
+                          color={getRiskLevelColor(request.risk_level) as any}
+                          size="small"
+                        />
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Monto: ${request.amount.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Puntuación: {request.risk_score}/100
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Estado: {request.approved ? 'Aprobado' : 'Rechazado'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(request.created_at).toLocaleDateString('es-ES')}
+                      </Typography>
+                    </Box>
+                  );
+                })}
               </Box>
             ) : (
               <Typography color="text.secondary">
-                No hay empresas registradas aún. <Link to={ROUTES.COMPANIES}>Agrega tu primera empresa</Link>
+                No hay evaluaciones de riesgo registradas aún.
               </Typography>
             )}
           </Paper>

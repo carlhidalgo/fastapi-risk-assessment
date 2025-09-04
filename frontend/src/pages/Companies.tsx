@@ -17,16 +17,23 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import { Add, Edit, Delete, Assessment } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { CompanyService } from '../services/companyService';
 import { Company, CompanyFormData } from '../types/company';
 import { parseErrorMessage } from '../utils/errorHandler';
 
 const Companies: React.FC = () => {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [open, setOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CompanyFormData>({
@@ -60,23 +67,80 @@ const Companies: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      await CompanyService.createCompany(formData);
+      
+      if (editingCompany) {
+        await CompanyService.updateCompany(Number(editingCompany.id), formData);
+      } else {
+        await CompanyService.createCompany(formData);
+      }
+      
       setOpen(false);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        industry: '',
-        annual_revenue: 0,
-        company_size: 0
-      });
+      setEditingCompany(null);
+      resetForm();
       await loadCompanies();
     } catch (error) {
-      console.error('Error creating company:', error);
+      console.error('Error saving company:', error);
       setError(parseErrorMessage(error));
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      industry: '',
+      annual_revenue: 0,
+      company_size: 0
+    });
+  };
+
+  const handleEdit = (company: Company) => {
+    setEditingCompany(company);
+    setFormData({
+      name: company.name,
+      email: company.email,
+      phone: company.phone,
+      industry: company.industry,
+      annual_revenue: company.annual_revenue,
+      company_size: company.company_size
+    });
+    setOpen(true);
+  };
+
+  const handleDeleteClick = (company: Company) => {
+    setCompanyToDelete(company);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!companyToDelete) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      await CompanyService.deleteCompany(Number(companyToDelete.id));
+      setDeleteDialogOpen(false);
+      setCompanyToDelete(null);
+      await loadCompanies();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      setError(parseErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRiskAssessment = (company: Company) => {
+    navigate(`/companies/${company.id}/risk-assessment`);
+  };
+
+  const handleDialogClose = () => {
+    setOpen(false);
+    setEditingCompany(null);
+    resetForm();
   };
 
   const handleInputChange = (field: keyof CompanyFormData) => (
@@ -121,6 +185,7 @@ const Companies: React.FC = () => {
               <TableCell>Ingresos</TableCell>
               <TableCell>Tamaño</TableCell>
               <TableCell>Creado</TableCell>
+              <TableCell>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -132,14 +197,45 @@ const Companies: React.FC = () => {
                 <TableCell>${company.annual_revenue.toLocaleString()}</TableCell>
                 <TableCell>{company.company_size} employees</TableCell>
                 <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Tooltip title="Evaluar Riesgo">
+                    <IconButton 
+                      color="primary" 
+                      onClick={() => handleRiskAssessment(company)}
+                      size="small"
+                    >
+                      <Assessment />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Editar">
+                    <IconButton 
+                      color="secondary" 
+                      onClick={() => handleEdit(company)}
+                      size="small"
+                    >
+                      <Edit />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Eliminar">
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleDeleteClick(company)}
+                      size="small"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Agregar Nueva Empresa</DialogTitle>
+      <Dialog open={open} onClose={handleDialogClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingCompany ? 'Editar Empresa' : 'Agregar Nueva Empresa'}
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -204,11 +300,30 @@ const Companies: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={loading}>
+          <Button onClick={handleDialogClose} disabled={loading}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-            {loading ? 'Agregando...' : 'Agregar'}
+            {loading ? (editingCompany ? 'Guardando...' : 'Agregando...') : (editingCompany ? 'Guardar' : 'Agregar')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmar Eliminación</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que deseas eliminar la empresa "{companyToDelete?.name}"?
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error" disabled={loading}>
+            {loading ? 'Eliminando...' : 'Eliminar'}
           </Button>
         </DialogActions>
       </Dialog>

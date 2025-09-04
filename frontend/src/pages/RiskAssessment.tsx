@@ -2,54 +2,116 @@ import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
-  Paper,
-  Box,
-  TextField,
-  MenuItem,
   Button,
   Card,
   CardContent,
+  TextField,
+  Box,
   Alert,
-  Chip
+  CircularProgress,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Fab
 } from '@mui/material';
+import { Add, Edit, Delete, ArrowBack } from '@mui/icons-material';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CompanyService } from '../services/companyService';
-import { RiskService } from '../services/riskService';
+import { RequestService } from '../services/requestService';
 import { Company } from '../types/company';
-import { CreateRiskAssessmentData, RiskAssessmentResponse } from '../types/risk';
-import { parseErrorMessage } from '../utils/errorHandler';
+import { RiskRequest, RequestFormData } from '../types/request';
 
 const RiskAssessment: React.FC = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const { companyId } = useParams<{ companyId: string }>();
+  const navigate = useNavigate();
+
+  // Estado principal
+  const [company, setCompany] = useState<Company | null>(null);
+  const [requests, setRequests] = useState<RiskRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RiskAssessmentResponse | null>(null);
-  const [formData, setFormData] = useState<CreateRiskAssessmentData>({
-    company_id: '',
+
+  // Estado del formulario
+  const [open, setOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<RiskRequest | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<RiskRequest | null>(null);
+
+  const [formData, setFormData] = useState<RequestFormData>({
+    company_id: companyId || '',
     amount: 0,
     purpose: '',
-    annual_revenue: undefined,
-    employee_count: undefined,
-    years_in_business: undefined,
-    debt_to_equity_ratio: undefined,
-    credit_score: undefined
+    annual_revenue: 0,
+    credit_score: 0,
+    debt_to_equity_ratio: 0,
+    employee_count: 0,
+    years_in_business: 0,
+    cash_flow: 0,
+    industry_risk_factor: 0
   });
 
-  useEffect(() => {
-    loadCompanies();
-  }, []);
-
-  const loadCompanies = async () => {
+  // Cargar datos de la empresa
+  const loadCompany = async () => {
+    if (!companyId) return;
+    
     try {
-      setError(null);
-      const companiesData = await CompanyService.getCompanies();
-      setCompanies(companiesData);
+      setLoading(true);
+      const companyData = await CompanyService.getCompany(parseInt(companyId));
+      setCompany(companyData);
     } catch (error) {
-      console.error('Error loading companies:', error);
-      setError(parseErrorMessage(error));
+      console.error('Error loading company:', error);
+      setError('Error al cargar la empresa');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof CreateRiskAssessmentData) => (
+  // Cargar evaluaciones de riesgo
+  const loadRequests = async () => {
+    if (!companyId) return;
+    
+    try {
+      setLoading(true);
+      const requestsData = await RequestService.getRequests({ search: companyId });
+      setRequests(requestsData.items);
+    } catch (error) {
+      console.error('Error loading requests:', error);
+      setError('Error al cargar las evaluaciones de riesgo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      await loadCompany();
+      await loadRequests();
+    };
+    loadData();
+  }, [companyId]);
+
+  const parseErrorMessage = (error: any): string => {
+    if (error?.response?.data?.detail) {
+      if (Array.isArray(error.response.data.detail)) {
+        return error.response.data.detail.map((e: any) => e.msg).join(', ');
+      }
+      return error.response.data.detail;
+    }
+    return error?.message || 'Error desconocido';
+  };
+
+  const handleInputChange = (field: keyof RequestFormData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = event.target.value;
@@ -57,204 +119,378 @@ const RiskAssessment: React.FC = () => {
       ...prev,
       [field]: field === 'company_id' || field === 'purpose' 
                ? value 
-               : field === 'amount' || field === 'annual_revenue' || 
-                 field === 'employee_count' || field === 'years_in_business' ||
-                 field === 'debt_to_equity_ratio' || field === 'credit_score'
-               ? Number(value) || undefined 
-               : value
+               : parseFloat(value) || 0
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
-      const assessment = await RiskService.assessRisk(formData);
-      setResult(assessment);
+      if (editingRequest) {
+        await RequestService.updateRequestFromForm(parseInt(editingRequest.id), formData);
+      } else {
+        await RequestService.createRequestFromForm(formData);
+      }
+      
+      setOpen(false);
+      setEditingRequest(null);
+      resetForm();
+      loadRequests();
     } catch (error) {
-      console.error('Error creating risk assessment:', error);
+      console.error('Error submitting request:', error);
       setError(parseErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const getRiskLevelColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'low': return 'success';
-      case 'medium': return 'warning';
-      case 'high': return 'error';
-      default: return 'default';
+  const resetForm = () => {
+    setFormData({
+      company_id: companyId || '',
+      amount: 0,
+      purpose: '',
+      annual_revenue: 0,
+      credit_score: 0,
+      debt_to_equity_ratio: 0,
+      employee_count: 0,
+      years_in_business: 0,
+      cash_flow: 0,
+      industry_risk_factor: 0
+    });
+  };
+
+  const handleEdit = (request: RiskRequest) => {
+    setEditingRequest(request);
+    setFormData({
+      company_id: request.company_id,
+      amount: request.amount,
+      purpose: request.purpose,
+      annual_revenue: request.risk_inputs.annual_revenue,
+      credit_score: request.risk_inputs.credit_score,
+      debt_to_equity_ratio: request.risk_inputs.debt_to_equity_ratio,
+      employee_count: request.risk_inputs.employee_count,
+      years_in_business: request.risk_inputs.years_in_business,
+      cash_flow: request.risk_inputs.cash_flow,
+      industry_risk_factor: request.risk_inputs.industry_risk_factor
+    });
+    setOpen(true);
+  };
+
+  const handleDeleteClick = (request: RiskRequest) => {
+    setRequestToDelete(request);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!requestToDelete) return;
+
+    try {
+      setLoading(true);
+      await RequestService.deleteRequest(parseInt(requestToDelete.id));
+      setDeleteDialogOpen(false);
+      setRequestToDelete(null);
+      loadRequests();
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      setError(parseErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleDialogClose = () => {
+    setOpen(false);
+    setEditingRequest(null);
+    resetForm();
+  };
+
+  const getRiskLevelColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'bajo':
+      case 'low':
+        return 'success';
+      case 'medio':
+      case 'medium':
+        return 'warning';
+      case 'alto':
+      case 'high':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  if (loading && !company) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Evaluación de Riesgos
-      </Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/companies')}
+            sx={{ mb: 2 }}
+          >
+            Volver a Empresas
+          </Button>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Evaluaciones de Riesgo
+          </Typography>
+          {company && (
+            <Typography variant="h6" color="text.secondary">
+              {company.name} - {company.industry}
+            </Typography>
+          )}
+        </Box>
+      </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      <Paper sx={{ p: 3 }}>
+      {/* Tabla de evaluaciones */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Historial de Evaluaciones
+          </Typography>
+          
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Fecha</TableCell>
+                  <TableCell>Monto</TableCell>
+                  <TableCell>Propósito</TableCell>
+                  <TableCell>Puntuación de Riesgo</TableCell>
+                  <TableCell>Nivel de Riesgo</TableCell>
+                  <TableCell>Aprobado</TableCell>
+                  <TableCell>Acciones</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>
+                      {new Date(request.created_at).toLocaleDateString('es-ES')}
+                    </TableCell>
+                    <TableCell>${request.amount.toLocaleString()}</TableCell>
+                    <TableCell>{request.purpose}</TableCell>
+                    <TableCell>
+                      <Typography variant="h6">
+                        {request.risk_score}/100
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={request.risk_level}
+                        color={getRiskLevelColor(request.risk_level) as any}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={request.approved ? 'SÍ' : 'NO'}
+                        color={request.approved ? 'success' : 'error'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="Editar">
+                        <IconButton
+                          onClick={() => handleEdit(request)}
+                          size="small"
+                        >
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar">
+                        <IconButton
+                          onClick={() => handleDeleteClick(request)}
+                          size="small"
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {requests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      <Typography variant="body2" color="text.secondary">
+                        No hay evaluaciones de riesgo registradas
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Botón flotante para nueva evaluación */}
+      <Fab
+        color="primary"
+        aria-label="add"
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        onClick={() => setOpen(true)}
+      >
+        <Add />
+      </Fab>
+
+      {/* Dialog para crear/editar evaluación */}
+      <Dialog open={open} onClose={handleDialogClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {editingRequest ? 'Editar Evaluación de Riesgo' : 'Nueva Evaluación de Riesgo'}
+        </DialogTitle>
         <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            select
-            label="Seleccionar Empresa"
-            value={formData.company_id || ''}
-            onChange={handleInputChange('company_id')}
-            margin="normal"
-            required
-          >
-            {companies.map((company) => (
-              <MenuItem key={company.id} value={company.id.toString()}>
-                {company.name} - {company.industry}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            fullWidth
-            label="Cantidad Solicitada"
-            type="number"
-            value={formData.amount || ''}
-            onChange={handleInputChange('amount')}
-            margin="normal"
-            required
-            InputProps={{ startAdornment: '$' }}
-          />
-
-          <TextField
-            fullWidth
-            label="Propósito del Préstamo"
-            value={formData.purpose}
-            onChange={handleInputChange('purpose')}
-            margin="normal"
-            required
-            placeholder="Ej: Expansión del negocio, capital de trabajo, equipamiento"
-          />
-
-          <TextField
-            fullWidth
-            label="Ingresos Anuales (Opcional)"
-            type="number"
-            value={formData.annual_revenue || ''}
-            onChange={handleInputChange('annual_revenue')}
-            margin="normal"
-            InputProps={{ startAdornment: '$' }}
-          />
-
-          <TextField
-            fullWidth
-            label="Número de Empleados (Opcional)"
-            type="number"
-            value={formData.employee_count || ''}
-            onChange={handleInputChange('employee_count')}
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label="Años en el Negocio (Opcional)"
-            type="number"
-            value={formData.years_in_business || ''}
-            onChange={handleInputChange('years_in_business')}
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label="Ratio Deuda/Patrimonio (Opcional)"
-            type="number"
-            value={formData.debt_to_equity_ratio || ''}
-            onChange={handleInputChange('debt_to_equity_ratio')}
-            margin="normal"
-            inputProps={{ step: "0.01", min: "0" }}
-          />
-
-          <TextField
-            fullWidth
-            label="Puntuación Crediticia (Opcional)"
-            type="number"
-            value={formData.credit_score || ''}
-            onChange={handleInputChange('credit_score')}
-            margin="normal"
-            inputProps={{ min: "300", max: "850" }}
-          />
-
-          <Box mt={3}>
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading || !formData.company_id}
-              fullWidth
-            >
-              {loading ? 'Evaluando Riesgo...' : 'Evaluar Riesgo'}
-            </Button>
-          </Box>
-        </form>
-
-        {result && (
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Resultado de Evaluación de Riesgos
-              </Typography>
-              
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                <Typography variant="h4" component="span">
-                  {result.risk_score}/100
-                </Typography>
-                <Chip 
-                  label={result.risk_level}
-                  color={getRiskLevelColor(result.risk_level) as any}
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Monto del Préstamo"
+                  type="number"
+                  fullWidth
+                  value={formData.amount}
+                  onChange={handleInputChange('amount')}
+                  required
+                  inputProps={{ min: 0 }}
+                />
+                <TextField
+                  label="Propósito del Préstamo"
+                  fullWidth
+                  value={formData.purpose}
+                  onChange={handleInputChange('purpose')}
+                  required
                 />
               </Box>
-
-              <Alert 
-                severity={result.approved ? 'success' : 'error'}
-                sx={{ mb: 2 }}
-              >
-                <Typography variant="body1">
-                  <strong>Decisión:</strong> {result.approved ? 'APROBADO' : 'RECHAZADO'}
-                </Typography>
-              </Alert>
-
-              <Typography variant="h6" gutterBottom>
-                Recomendaciones:
-              </Typography>
-              {result.recommendations && result.recommendations.length > 0 ? (
-                <Box component="ul" sx={{ mt: 1, pl: 2 }}>
-                  {result.recommendations.map((recommendation, index) => (
-                    <Typography key={index} component="li" variant="body2" gutterBottom>
-                      {recommendation}
-                    </Typography>
-                  ))}
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No hay recomendaciones específicas disponibles.
-                </Typography>
-              )}
-
-              <Box mt={2}>
-                <Typography variant="body2" color="text.secondary">
-                  Evaluación completada para solicitud de préstamo de ${formData.amount?.toLocaleString()} 
-                  para {formData.purpose}
-                </Typography>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Ingresos Anuales"
+                  type="number"
+                  fullWidth
+                  value={formData.annual_revenue}
+                  onChange={handleInputChange('annual_revenue')}
+                  required
+                  inputProps={{ min: 0 }}
+                />
+                <TextField
+                  label="Años en el Negocio"
+                  type="number"
+                  fullWidth
+                  value={formData.years_in_business}
+                  onChange={handleInputChange('years_in_business')}
+                  required
+                  inputProps={{ min: 0 }}
+                />
               </Box>
-            </CardContent>
-          </Card>
-        )}
-      </Paper>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Puntuación de Crédito"
+                  type="number"
+                  fullWidth
+                  value={formData.credit_score}
+                  onChange={handleInputChange('credit_score')}
+                  required
+                  inputProps={{ min: 300, max: 850 }}
+                />
+                <TextField
+                  label="Número de Empleados"
+                  type="number"
+                  fullWidth
+                  value={formData.employee_count}
+                  onChange={handleInputChange('employee_count')}
+                  required
+                  inputProps={{ min: 0 }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label="Ratio Deuda/Patrimonio"
+                  type="number"
+                  fullWidth
+                  value={formData.debt_to_equity_ratio}
+                  onChange={handleInputChange('debt_to_equity_ratio')}
+                  required
+                  inputProps={{ min: 0, step: 0.01 }}
+                />
+                <TextField
+                  label="Flujo de Caja"
+                  type="number"
+                  fullWidth
+                  value={formData.cash_flow}
+                  onChange={handleInputChange('cash_flow')}
+                  required
+                />
+              </Box>
+              <TextField
+                label="Factor de Riesgo de la Industria"
+                type="number"
+                fullWidth
+                value={formData.industry_risk_factor}
+                onChange={handleInputChange('industry_risk_factor')}
+                required
+                inputProps={{ min: 0, max: 1, step: 0.01 }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDialogClose}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : (editingRequest ? 'Actualizar' : 'Crear')}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Dialog de confirmación de eliminación */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmar Eliminación</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Está seguro de que desea eliminar esta evaluación de riesgo?
+          </Typography>
+          {requestToDelete && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Monto: ${requestToDelete.amount.toLocaleString()} - {requestToDelete.purpose}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

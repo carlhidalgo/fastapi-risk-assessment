@@ -15,4 +15,5 @@ export const ROUTES = {
   DASHBOARD: '/dashboard',
   COMPANIES: '/companies',
   RISK_ASSESSMENT: '/risk-assessment',
+  COMPANY_RISK_ASSESSMENT: '/companies/:companyId/risk-assessment',
 } as const;

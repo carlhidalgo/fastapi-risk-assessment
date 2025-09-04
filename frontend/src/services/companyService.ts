@@ -16,4 +16,13 @@ export class CompanyService {
     const response = await api.get<Company>(`/companies/${id}`);
     return response.data;
   }
+
+  static async updateCompany(id: number, companyData: Partial<CreateCompanyData>): Promise<Company> {
+    const response = await api.put<Company>(`/companies/${id}`, companyData);
+    return response.data;
+  }
+
+  static async deleteCompany(id: number): Promise<void> {
+    await api.delete(`/companies/${id}`);
+  }
 }

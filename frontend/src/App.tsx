@@ -82,6 +82,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path={ROUTES.COMPANY_RISK_ASSESSMENT}
+                element={
+                  <ProtectedRoute>
+                    <RiskAssessment />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </div>
         </Router>
