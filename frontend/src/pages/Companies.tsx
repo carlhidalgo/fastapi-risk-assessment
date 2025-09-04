@@ -194,7 +194,7 @@ const Companies: React.FC = () => {
                 <TableCell>{company.name}</TableCell>
                 <TableCell>{company.email}</TableCell>
                 <TableCell>{company.industry}</TableCell>
-                <TableCell>${company.annual_revenue.toLocaleString()}</TableCell>
+                <TableCell>${company.annual_revenue.toLocaleString()} USD</TableCell>
                 <TableCell>{company.company_size} employees</TableCell>
                 <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
                 <TableCell>
@@ -282,7 +282,7 @@ const Companies: React.FC = () => {
           </TextField>
           <TextField
             fullWidth
-            label="Ingresos Anuales"
+            label="Ingresos Anuales (USD)"
             type="number"
             value={formData.annual_revenue}
             onChange={handleInputChange('annual_revenue')}

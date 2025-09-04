@@ -95,3 +95,8 @@ Thumbs.db
 # Alembic
 backend/alembic/versions/*.py
 !backend/alembic/versions/__init__.py
+
+# Environment variables
+.env
+*.env
+!.env.example

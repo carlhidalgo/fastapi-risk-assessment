@@ -1,4 +1,5 @@
 from typing import List, Tuple
+from app.schemas.schemas import RiskRequest, RiskResponse
 
 
 def safe_get_numeric(data: dict, key: str, default: float = 0) -> float:
@@ -7,8 +8,106 @@ def safe_get_numeric(data: dict, key: str, default: float = 0) -> float:
     return default if value is None else float(value)
 
 
-def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
-    """Calculate risk score based on input parameters"""
+def calculate_risk_score(data: RiskRequest) -> RiskResponse:
+    """
+    Calculate risk score based on business metrics
+    Returns a score from 0-100 and risk assessment
+    """
+    score = 0
+    recommendations = []
+    
+    # 1. FACTOR INGRESOS (30 puntos máximo)
+    if data.annual_revenue and data.amount:
+        ratio = data.amount / data.annual_revenue
+        if ratio <= 0.3:  # Excelente
+            score += 30
+            recommendations.append("Excelente ratio préstamo/ingresos, procesamiento expedito posible")
+        elif ratio <= 0.5:  # Bueno
+            score += 25
+            recommendations.append("Ratio de préstamo aceptable para sus ingresos")
+        elif ratio <= 0.7:  # Regular
+            score += 15
+            recommendations.append("La cantidad solicitada es alta en relación a sus ingresos")
+        else:  # Pobre
+            score += 5
+            recommendations.append("Alto riesgo: cantidad del préstamo muy alta para sus ingresos")
+    
+    # 2. FACTOR EMPLEADOS (20 puntos máximo)
+    if data.employee_count:
+        if data.employee_count >= 50:
+            score += 20
+            recommendations.append("Empresa grande muestra excelente estabilidad")
+        elif data.employee_count >= 11:
+            score += 15
+            recommendations.append("Empresa mediana muestra buena estabilidad")
+        elif data.employee_count >= 5:
+            score += 10
+            recommendations.append("Empresa pequeña, considere mostrar planes de crecimiento")
+        else:
+            score += 5
+            recommendations.append("Empresa muy pequeña, perfil de mayor riesgo")
+    
+    # 3. FACTOR AÑOS EN NEGOCIO (20 puntos máximo)
+    if data.years_in_business:
+        if data.years_in_business >= 10:
+            score += 20
+            recommendations.append("Empresa bien establecida con sólida trayectoria")
+        elif data.years_in_business >= 5:
+            score += 15
+            recommendations.append("Empresa establecida con buen historial")
+        elif data.years_in_business >= 2:
+            score += 10
+            recommendations.append("Empresa moderadamente establecida")
+        else:
+            score += 5
+            recommendations.append("Empresa nueva, considere plan de negocio detallado")
+    
+    # 4. FACTOR SALUD FINANCIERA (15 puntos máximo)
+    if data.debt_to_equity_ratio is not None:
+        if data.debt_to_equity_ratio <= 0.5:
+            score += 15
+            recommendations.append("Excelente salud financiera")
+        elif data.debt_to_equity_ratio <= 1.0:
+            score += 10
+            recommendations.append("Salud financiera moderada, verificar tendencias")
+        else:
+            score += 5
+            recommendations.append("Alto ratio de deuda, considere reducción de deudas")
+    
+    # 5. FACTOR PUNTUACIÓN CREDITICIA (15 puntos máximo)
+    if data.credit_score:
+        if data.credit_score >= 750:
+            score += 15
+            recommendations.append("Excelente puntuación crediticia, tarifas competitivas disponibles")
+        elif data.credit_score >= 650:
+            score += 10
+            recommendations.append("Buena puntuación crediticia, tarifas competitivas disponibles")
+        else:
+            score += 5
+            recommendations.append("Puntuación crediticia regular, trabaje en mejorarla")
+    
+    # Determinar nivel de riesgo y aprobación
+    if score >= 70:
+        risk_level = "Bajo"
+        approved = True
+    elif score >= 50:
+        risk_level = "Medio" 
+        approved = True
+    else:
+        risk_level = "Alto"
+        approved = False
+    
+    return RiskResponse(
+        risk_score=score,
+        risk_level=risk_level,
+        approved=approved,
+        recommendations=recommendations
+    )
+
+
+# Función legacy para compatibilidad hacia atrás
+def calculate_risk_score_legacy(risk_data: dict) -> Tuple[str, float, List[str]]:
+    """Legacy function for backward compatibility"""
     score = 0.0
     recommendations = []
     
@@ -16,100 +115,41 @@ def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
     amount = safe_get_numeric(risk_data, 'amount', 0)
     if amount > 1000000:
         score += 3.0
-        recommendations.append("Large loan amount requires additional collateral")
+        recommendations.append("Cantidad de préstamo grande requiere garantías adicionales")
     elif amount > 500000:
         score += 2.0
-        recommendations.append("Moderate loan amount, ensure stable income verification")
+        recommendations.append("Cantidad moderada, asegurar verificación de ingresos estables")
     elif amount > 100000:
         score += 1.0
-        recommendations.append("Standard verification process recommended")
+        recommendations.append("Proceso de verificación estándar recomendado")
     else:
-        recommendations.append("Low amount loan, expedited processing possible")
+        recommendations.append("Préstamo de cantidad baja, procesamiento expedito posible")
     
     # Company size impact
     size_category = risk_data.get('size_category', 'medium')
     if size_category == 'startup':
         score += 2.5
-        recommendations.append("Startup requires business plan review and market analysis")
+        recommendations.append("Startup requiere revisión de plan de negocio")
     elif size_category == 'small':
         score += 1.5
-        recommendations.append("Small business requires financial history review")
+        recommendations.append("Empresa pequeña requiere revisión de historial financiero")
     elif size_category == 'medium':
         score += 1.0
-        recommendations.append("Medium business shows good stability")
+        recommendations.append("Empresa mediana muestra buena estabilidad")
     elif size_category == 'large':
         score += 0.5
-        recommendations.append("Large business shows strong stability")
+        recommendations.append("Empresa grande muestra fuerte estabilidad")
     else:  # enterprise
-        recommendations.append("Enterprise level shows excellent stability")
-    
-    # Industry risk assessment
-    industry = risk_data.get('industry', '')
-    high_risk_industries = ['real_estate', 'retail']
-    medium_risk_industries = ['technology', 'consulting']
-    low_risk_industries = ['healthcare', 'education', 'finance']
-    
-    if industry in high_risk_industries:
-        score += 2.0
-        recommendations.append("High-risk industry requires additional documentation")
-    elif industry in medium_risk_industries:
-        score += 1.0
-        recommendations.append("Medium-risk industry, standard review process")
-    elif industry in low_risk_industries:
-        score += 0.5
-        recommendations.append("Low-risk industry, favorable conditions")
-    
-    # Years in business
-    years_in_business = safe_get_numeric(risk_data, 'years_in_business', 0)
-    if years_in_business < 1:
-        score += 3.0
-        recommendations.append("New business requires extensive financial review")
-    elif years_in_business < 3:
-        score += 2.0
-        recommendations.append("Young business requires careful evaluation")
-    elif years_in_business < 10:
-        score += 1.0
-        recommendations.append("Established business with good track record")
-    else:
-        recommendations.append("Well-established business with strong history")
-    
-    # Annual revenue assessment
-    annual_revenue = safe_get_numeric(risk_data, 'annual_revenue', 0)
-    if annual_revenue < 100000:
-        score += 2.5
-        recommendations.append("Low revenue requires additional income verification")
-    elif annual_revenue < 500000:
-        score += 1.5
-        recommendations.append("Moderate revenue, verify growth trends")
-    elif annual_revenue < 1000000:
-        score += 1.0
-        recommendations.append("Good revenue base, standard process")
-    else:
-        recommendations.append("Strong revenue base, favorable terms possible")
-    
-    # Credit history impact
-    credit_score = safe_get_numeric(risk_data, 'credit_score', 700)
-    
-    if credit_score < 600:
-        score += 3.0
-        recommendations.append("Poor credit score requires cosigner or additional collateral")
-    elif credit_score < 700:
-        score += 2.0
-        recommendations.append("Fair credit score, standard interest rates apply")
-    elif credit_score < 800:
-        score += 1.0
-        recommendations.append("Good credit score, competitive rates available")
-    else:
-        recommendations.append("Excellent credit score, best rates available")
+        recommendations.append("Nivel empresarial muestra excelente estabilidad")
     
     # Determine risk level
     if score <= 3.0:
-        risk_level = "LOW"
+        risk_level = "BAJO"
     elif score <= 6.0:
-        risk_level = "MEDIUM"
+        risk_level = "MEDIO"
     elif score <= 9.0:
-        risk_level = "HIGH"
+        risk_level = "ALTO"
     else:
-        risk_level = "VERY_HIGH"
+        risk_level = "MUY_ALTO"
     
     return risk_level, round(score, 2), recommendations

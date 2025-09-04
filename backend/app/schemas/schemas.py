@@ -83,12 +83,35 @@ class RequestBase(BaseModel):
 class RequestCreate(RequestBase):
     pass
 
+class RequestUpdate(BaseModel):
+    company_id: Optional[str] = None
+    amount: Optional[float] = None
+    purpose: Optional[str] = None
+    risk_inputs: Optional[dict] = None
+    status: Optional[str] = None
+
 class RequestResponse(RequestBase):
     id: str
     risk_score: float
     status: str
+    risk_level: Optional[str] = None
+    recommendations: Optional[str] = None
+    approved: Optional[bool] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+class RequestListResponse(BaseModel):
+    id: str
+    company_id: str
+    amount: float
+    purpose: str
+    status: str
+    risk_level: Optional[str] = None
+    risk_score: float
+    created_at: datetime
     
     class Config:
         from_attributes = True
@@ -96,6 +119,13 @@ class RequestResponse(RequestBase):
 # Pagination schemas
 class PaginatedResponse(BaseModel):
     items: list
+    page: int
+    size: int
+    total: int
+    pages: int
+
+class PaginatedRequestsResponse(BaseModel):
+    items: List[RequestListResponse]
     page: int
     size: int
     total: int

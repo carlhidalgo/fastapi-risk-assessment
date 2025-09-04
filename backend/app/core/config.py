@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    DATABASE_URL: str = "sqlite:///./fastapi_risk.db"
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/fastapi_risk_db"
     
     # Environment
     ENVIRONMENT: str = "development"

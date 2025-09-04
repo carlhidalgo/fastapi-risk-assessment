@@ -52,13 +52,10 @@ const RiskAssessment: React.FC = () => {
     company_id: companyId || '',
     amount: 0,
     purpose: '',
-    annual_revenue: 0,
     credit_score: 0,
     debt_to_equity_ratio: 0,
-    employee_count: 0,
     years_in_business: 0,
-    cash_flow: 0,
-    industry_risk_factor: 0
+    cash_flow: 0
   });
 
   // Cargar datos de la empresa
@@ -130,9 +127,9 @@ const RiskAssessment: React.FC = () => {
 
     try {
       if (editingRequest) {
-        await RequestService.updateRequestFromForm(parseInt(editingRequest.id), formData);
+        await RequestService.updateRequestFromForm(parseInt(editingRequest.id), formData, company!);
       } else {
-        await RequestService.createRequestFromForm(formData);
+        await RequestService.createRequestFromForm(formData, company!);
       }
       
       setOpen(false);
@@ -152,13 +149,10 @@ const RiskAssessment: React.FC = () => {
       company_id: companyId || '',
       amount: 0,
       purpose: '',
-      annual_revenue: 0,
       credit_score: 0,
       debt_to_equity_ratio: 0,
-      employee_count: 0,
       years_in_business: 0,
-      cash_flow: 0,
-      industry_risk_factor: 0
+      cash_flow: 0
     });
   };
 
@@ -168,13 +162,10 @@ const RiskAssessment: React.FC = () => {
       company_id: request.company_id,
       amount: request.amount,
       purpose: request.purpose,
-      annual_revenue: request.risk_inputs.annual_revenue,
       credit_score: request.risk_inputs.credit_score,
       debt_to_equity_ratio: request.risk_inputs.debt_to_equity_ratio,
-      employee_count: request.risk_inputs.employee_count,
       years_in_business: request.risk_inputs.years_in_business,
-      cash_flow: request.risk_inputs.cash_flow,
-      industry_risk_factor: request.risk_inputs.industry_risk_factor
+      cash_flow: request.risk_inputs.cash_flow
     });
     setOpen(true);
   };
@@ -272,7 +263,7 @@ const RiskAssessment: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Monto</TableCell>
+                  <TableCell>Monto (USD)</TableCell>
                   <TableCell>Propósito</TableCell>
                   <TableCell>Puntuación de Riesgo</TableCell>
                   <TableCell>Nivel de Riesgo</TableCell>
@@ -360,10 +351,31 @@ const RiskAssessment: React.FC = () => {
         </DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent>
+            {/* Información de la empresa (solo lectura) */}
+            {company && (
+              <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  Datos de la Empresa (automáticos)
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Ingresos Anuales:</strong> ${company.annual_revenue.toLocaleString()} USD
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Empleados:</strong> {company.company_size}
+                  </Typography>
+                </Box>
+                <Typography variant="body2">
+                  <strong>Industria:</strong> {company.industry}
+                </Typography>
+              </Box>
+            )}
+            
+            {/* Formulario de evaluación */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Monto del Préstamo"
+                  label="Monto del Préstamo (USD)"
                   type="number"
                   fullWidth
                   value={formData.amount}
@@ -381,15 +393,6 @@ const RiskAssessment: React.FC = () => {
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Ingresos Anuales"
-                  type="number"
-                  fullWidth
-                  value={formData.annual_revenue}
-                  onChange={handleInputChange('annual_revenue')}
-                  required
-                  inputProps={{ min: 0 }}
-                />
-                <TextField
                   label="Años en el Negocio"
                   type="number"
                   fullWidth
@@ -398,8 +401,6 @@ const RiskAssessment: React.FC = () => {
                   required
                   inputProps={{ min: 0 }}
                 />
-              </Box>
-              <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   label="Puntuación de Crédito"
                   type="number"
@@ -408,15 +409,6 @@ const RiskAssessment: React.FC = () => {
                   onChange={handleInputChange('credit_score')}
                   required
                   inputProps={{ min: 300, max: 850 }}
-                />
-                <TextField
-                  label="Número de Empleados"
-                  type="number"
-                  fullWidth
-                  value={formData.employee_count}
-                  onChange={handleInputChange('employee_count')}
-                  required
-                  inputProps={{ min: 0 }}
                 />
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -430,7 +422,7 @@ const RiskAssessment: React.FC = () => {
                   inputProps={{ min: 0, step: 0.01 }}
                 />
                 <TextField
-                  label="Flujo de Caja"
+                  label="Flujo de Caja (USD)"
                   type="number"
                   fullWidth
                   value={formData.cash_flow}
@@ -438,15 +430,6 @@ const RiskAssessment: React.FC = () => {
                   required
                 />
               </Box>
-              <TextField
-                label="Factor de Riesgo de la Industria"
-                type="number"
-                fullWidth
-                value={formData.industry_risk_factor}
-                onChange={handleInputChange('industry_risk_factor')}
-                required
-                inputProps={{ min: 0, max: 1, step: 0.01 }}
-              />
             </Box>
           </DialogContent>
           <DialogActions>

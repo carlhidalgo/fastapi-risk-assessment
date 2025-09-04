@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
                         />
                       </Box>
                       <Typography variant="body2" color="text.secondary">
-                        Monto: ${request.amount.toLocaleString()}
+                        Monto: ${request.amount.toLocaleString()} USD
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Puntuación: {request.risk_score}/100

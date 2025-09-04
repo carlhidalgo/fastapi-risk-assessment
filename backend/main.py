@@ -20,10 +20,11 @@ app.add_middleware(
 
 # Import and include routers
 try:
-    from app.routers import auth, companies, risk
+    from app.routers import auth, companies, risk, requests
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(companies.router, prefix="/api/v1")
     app.include_router(risk.router, prefix="/api/v1")
+    app.include_router(requests.router, prefix="/api/v1")
     print("All routers loaded successfully")
 except Exception as e:
     print(f"Error loading routers: {e}")

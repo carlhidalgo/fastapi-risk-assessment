@@ -13,8 +13,8 @@ from app.core.config import settings
 # this is the Alembic Config object
 config = context.config
 
-# Set a hardcoded database URL to avoid encoding issues with Windows paths
-database_url = "postgresql://postgres:postgres@localhost:5432/postgres"
+# Set the database URL from environment or settings
+database_url = settings.DATABASE_URL
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging

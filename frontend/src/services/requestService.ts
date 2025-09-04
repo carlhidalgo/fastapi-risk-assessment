@@ -1,4 +1,5 @@
 import { RiskRequest, CreateRequestData, RequestStatistics, RequestFormData } from '../types/request';
+import { Company } from '../types/company';
 import { api } from './authService';
 
 export class RequestService {
@@ -41,19 +42,19 @@ export class RequestService {
     return response.data;
   }
 
-  static async createRequestFromForm(formData: RequestFormData): Promise<RiskRequest> {
+  static async createRequestFromForm(formData: RequestFormData, company: Company): Promise<RiskRequest> {
     const requestData: CreateRequestData = {
       company_id: formData.company_id,
       amount: formData.amount,
       purpose: formData.purpose,
       risk_inputs: {
-        annual_revenue: formData.annual_revenue,
+        annual_revenue: company.annual_revenue,
         credit_score: formData.credit_score,
         debt_to_equity_ratio: formData.debt_to_equity_ratio,
-        employee_count: formData.employee_count,
+        employee_count: company.company_size,
         years_in_business: formData.years_in_business,
         cash_flow: formData.cash_flow,
-        industry_risk_factor: formData.industry_risk_factor
+        industry_risk_factor: 0.5 // Valor por defecto, se puede calcular en el backend
       }
     };
     return this.createRequest(requestData);
@@ -69,19 +70,19 @@ export class RequestService {
     return response.data;
   }
 
-  static async updateRequestFromForm(id: number, formData: RequestFormData): Promise<RiskRequest> {
+  static async updateRequestFromForm(id: number, formData: RequestFormData, company: Company): Promise<RiskRequest> {
     const requestData: CreateRequestData = {
       company_id: formData.company_id,
       amount: formData.amount,
       purpose: formData.purpose,
       risk_inputs: {
-        annual_revenue: formData.annual_revenue,
+        annual_revenue: company.annual_revenue,
         credit_score: formData.credit_score,
         debt_to_equity_ratio: formData.debt_to_equity_ratio,
-        employee_count: formData.employee_count,
+        employee_count: company.company_size,
         years_in_business: formData.years_in_business,
         cash_flow: formData.cash_flow,
-        industry_risk_factor: formData.industry_risk_factor
+        industry_risk_factor: 0.5 // Valor por defecto, se puede calcular en el backend
       }
     };
     return this.updateRequest(id, requestData);

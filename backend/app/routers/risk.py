@@ -24,41 +24,39 @@ def assess_risk(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid company ID format")
     
-    # Verify company exists
-    company = db.query(Company).filter(Company.id == company_id_int).first()
+    # Verify company exists and belongs to user
+    company = db.query(Company).filter(
+        Company.id == company_id_int,
+        Company.user_id == current_user.id
+    ).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     
-    # Prepare risk inputs
-    risk_inputs = {
-        'amount': risk_data.amount,
-        'purpose': risk_data.purpose,
-        'company_size': company.company_size,  # Use company_size (number of employees)
-        'size_category': company.size.value if company.size else 'medium',  # Use size category
-        'industry': company.industry,
-        'years_in_business': risk_data.years_in_business or 1,  # Use from request data
-        'annual_revenue': company.annual_revenue,
-        'credit_score': risk_data.credit_score
-    }
+    # Use the new calculation method
+    result = calculate_risk_score(risk_data)
     
-    # Calculate risk
-    risk_level, risk_score, recommendations = calculate_risk_score(risk_inputs)
-    
-    # Determine approval status
-    approved = risk_level in ["LOW", "MEDIUM"]
-    
-    # Create risk assessment request
+    # Create risk assessment request in database
     risk_request = Request(
         user_id=current_user.id,
         company_id=company_id_int,
         amount=risk_data.amount,
         purpose=risk_data.purpose,
-        risk_level=risk_level,
-        risk_score=risk_score,
-        status="approved" if approved else "rejected",
-        risk_inputs=risk_inputs,
-        recommendations="; ".join(recommendations),  # Convert list to string
-        approved=approved
+        risk_level=result.risk_level,
+        risk_score=result.risk_score,
+        status="approved" if result.approved else "rejected",
+        risk_inputs={
+            'amount': risk_data.amount,
+            'purpose': risk_data.purpose,
+            'company_size': company.company_size,
+            'industry': company.industry,
+            'annual_revenue': risk_data.annual_revenue or company.annual_revenue,
+            'employee_count': risk_data.employee_count,
+            'years_in_business': risk_data.years_in_business,
+            'debt_to_equity_ratio': risk_data.debt_to_equity_ratio,
+            'credit_score': risk_data.credit_score
+        },
+        recommendations="; ".join(result.recommendations),
+        approved=result.approved
     )
     
     db.add(risk_request)
@@ -66,8 +64,8 @@ def assess_risk(
     db.refresh(risk_request)
     
     return RiskResponse(
-        risk_level=risk_level,
-        risk_score=risk_score,
-        recommendations=recommendations,
-        approved=approved
+        risk_level=result.risk_level,
+        risk_score=result.risk_score,
+        recommendations=result.recommendations,
+        approved=result.approved
     )
