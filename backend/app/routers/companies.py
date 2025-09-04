@@ -20,16 +20,11 @@ def create_company(
     """Create a new company"""
     company = Company(
         name=company_data.name,
-        industry=company_data.industry,
-        size=company_data.size,
-        description=company_data.description,
-        address=company_data.address,
-        phone=company_data.phone,
         email=company_data.email,
-        website=company_data.website,
-        years_in_business=company_data.years_in_business,
+        phone=company_data.phone,
+        industry=company_data.industry,
         annual_revenue=company_data.annual_revenue,
-        employee_count=company_data.employee_count
+        company_size=company_data.company_size
     )
     
     db.add(company)
@@ -39,17 +34,12 @@ def create_company(
     return CompanyResponse(
         id=str(company.id),
         name=company.name,
-        industry=company.industry,
-        size=company.size,
-        description=company.description,
-        address=company.address,
-        phone=company.phone,
         email=company.email,
-        website=company.website,
-        years_in_business=company.years_in_business,
+        phone=company.phone,
+        industry=company.industry,
         annual_revenue=company.annual_revenue,
-        employee_count=company.employee_count,
-        created_at=company.created_at.isoformat()
+        company_size=company.company_size,
+        created_at=company.created_at
     )
 
 
@@ -65,17 +55,12 @@ def list_companies(
         CompanyResponse(
             id=str(company.id),
             name=company.name,
-            industry=company.industry,
-            size=company.size,
-            description=company.description,
-            address=company.address,
-            phone=company.phone,
             email=company.email,
-            website=company.website,
-            years_in_business=company.years_in_business,
+            phone=company.phone,
+            industry=company.industry,
             annual_revenue=company.annual_revenue,
-            employee_count=company.employee_count,
-            created_at=company.created_at.isoformat()
+            company_size=company.company_size,
+            created_at=company.created_at
         )
         for company in companies
     ]
@@ -95,15 +80,10 @@ def get_company(
     return CompanyResponse(
         id=str(company.id),
         name=company.name,
-        industry=company.industry,
-        size=company.size,
-        description=company.description,
-        address=company.address,
-        phone=company.phone,
         email=company.email,
-        website=company.website,
-        years_in_business=company.years_in_business,
+        phone=company.phone,
+        industry=company.industry,
         annual_revenue=company.annual_revenue,
-        employee_count=company.employee_count,
-        created_at=company.created_at.isoformat()
+        company_size=company.company_size,
+        created_at=company.created_at
     )

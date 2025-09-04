@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Box mb={4}>
         <Typography variant="h3" component="h1" gutterBottom>
-          Bienvenido de nuevo, {user?.name}!
+          Bienvenido de nuevo, {user?.full_name || 'Usuario'}!
         </Typography>
         <Typography variant="h6" color="text.secondary">
           Panel de la Plataforma de Evaluación de Riesgos

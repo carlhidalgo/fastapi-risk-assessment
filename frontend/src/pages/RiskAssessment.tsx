@@ -24,12 +24,14 @@ const RiskAssessment: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RiskAssessmentResponse | null>(null);
   const [formData, setFormData] = useState<CreateRiskAssessmentData>({
-    company_id: 0,
-    requested_amount: 0,
-    loan_term_months: 12,
+    company_id: '',
+    amount: 0,
     purpose: '',
-    collateral_value: undefined,
-    collateral_type: undefined
+    annual_revenue: undefined,
+    employee_count: undefined,
+    years_in_business: undefined,
+    debt_to_equity_ratio: undefined,
+    credit_score: undefined
   });
 
   useEffect(() => {
@@ -53,9 +55,13 @@ const RiskAssessment: React.FC = () => {
     const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'company_id' || field === 'requested_amount' || 
-               field === 'loan_term_months' || field === 'collateral_value' 
-               ? Number(value) : value
+      [field]: field === 'company_id' || field === 'purpose' 
+               ? value 
+               : field === 'amount' || field === 'annual_revenue' || 
+                 field === 'employee_count' || field === 'years_in_business' ||
+                 field === 'debt_to_equity_ratio' || field === 'credit_score'
+               ? Number(value) || undefined 
+               : value
     }));
   };
 
@@ -84,13 +90,6 @@ const RiskAssessment: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -115,7 +114,7 @@ const RiskAssessment: React.FC = () => {
             required
           >
             {companies.map((company) => (
-              <MenuItem key={company.id} value={company.id}>
+              <MenuItem key={company.id} value={company.id.toString()}>
                 {company.name} - {company.industry}
               </MenuItem>
             ))}
@@ -125,8 +124,8 @@ const RiskAssessment: React.FC = () => {
             fullWidth
             label="Cantidad Solicitada"
             type="number"
-            value={formData.requested_amount}
-            onChange={handleInputChange('requested_amount')}
+            value={formData.amount || ''}
+            onChange={handleInputChange('amount')}
             margin="normal"
             required
             InputProps={{ startAdornment: '$' }}
@@ -134,48 +133,60 @@ const RiskAssessment: React.FC = () => {
 
           <TextField
             fullWidth
-            label="Plazo del Préstamo (meses)"
-            type="number"
-            value={formData.loan_term_months}
-            onChange={handleInputChange('loan_term_months')}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            select
-            label="Propósito"
+            label="Propósito del Préstamo"
             value={formData.purpose}
             onChange={handleInputChange('purpose')}
             margin="normal"
             required
-          >
-            <MenuItem value="expansion">Expansión del Negocio</MenuItem>
-            <MenuItem value="equipment">Compra de Equipos</MenuItem>
-            <MenuItem value="working_capital">Capital de Trabajo</MenuItem>
-            <MenuItem value="real_estate">Bienes Raíces</MenuItem>
-            <MenuItem value="inventory">Inventario</MenuItem>
-            <MenuItem value="other">Otros</MenuItem>
-          </TextField>
+            placeholder="Ej: Expansión del negocio, capital de trabajo, equipamiento"
+          />
 
           <TextField
             fullWidth
-            label="Valor de Garantía (opcional)"
+            label="Ingresos Anuales (Opcional)"
             type="number"
-            value={formData.collateral_value || ''}
-            onChange={handleInputChange('collateral_value')}
+            value={formData.annual_revenue || ''}
+            onChange={handleInputChange('annual_revenue')}
             margin="normal"
             InputProps={{ startAdornment: '$' }}
           />
 
           <TextField
             fullWidth
-            label="Tipo de Garantía (opcional)"
-            value={formData.collateral_type || ''}
-            onChange={handleInputChange('collateral_type')}
+            label="Número de Empleados (Opcional)"
+            type="number"
+            value={formData.employee_count || ''}
+            onChange={handleInputChange('employee_count')}
             margin="normal"
-            placeholder="ej. Bienes Raíces, Equipos, Inventario"
+          />
+
+          <TextField
+            fullWidth
+            label="Años en el Negocio (Opcional)"
+            type="number"
+            value={formData.years_in_business || ''}
+            onChange={handleInputChange('years_in_business')}
+            margin="normal"
+          />
+
+          <TextField
+            fullWidth
+            label="Ratio Deuda/Patrimonio (Opcional)"
+            type="number"
+            value={formData.debt_to_equity_ratio || ''}
+            onChange={handleInputChange('debt_to_equity_ratio')}
+            margin="normal"
+            inputProps={{ step: "0.01", min: "0" }}
+          />
+
+          <TextField
+            fullWidth
+            label="Puntuación Crediticia (Opcional)"
+            type="number"
+            value={formData.credit_score || ''}
+            onChange={handleInputChange('credit_score')}
+            margin="normal"
+            inputProps={{ min: "300", max: "850" }}
           />
 
           <Box mt={3}>
@@ -215,21 +226,29 @@ const RiskAssessment: React.FC = () => {
                 <Typography variant="body1">
                   <strong>Decisión:</strong> {result.approved ? 'APROBADO' : 'RECHAZADO'}
                 </Typography>
-                {result.max_approved_amount && (
-                  <Typography variant="body2">
-                    Cantidad máxima aprobada: {formatCurrency(result.max_approved_amount)}
-                  </Typography>
-                )}
               </Alert>
 
-              <Typography variant="body1" gutterBottom>
-                <strong>Recomendación:</strong> {result.recommendation}
+              <Typography variant="h6" gutterBottom>
+                Recomendaciones:
               </Typography>
+              {result.recommendations && result.recommendations.length > 0 ? (
+                <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+                  {result.recommendations.map((recommendation, index) => (
+                    <Typography key={index} component="li" variant="body2" gutterBottom>
+                      {recommendation}
+                    </Typography>
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No hay recomendaciones específicas disponibles.
+                </Typography>
+              )}
 
               <Box mt={2}>
                 <Typography variant="body2" color="text.secondary">
-                  Evaluación completada para solicitud de préstamo de {formatCurrency(result.requested_amount)} 
-                  a {result.loan_term_months} meses para {result.purpose}
+                  Evaluación completada para solicitud de préstamo de ${formData.amount?.toLocaleString()} 
+                  para {formData.purpose}
                 </Typography>
               </Box>
             </CardContent>

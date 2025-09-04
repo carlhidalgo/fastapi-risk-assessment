@@ -1,8 +1,8 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
-  is_active: boolean;
+  full_name: string;
+  is_active?: boolean;
   created_at: string;
 }
 
@@ -12,7 +12,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  name: string;
+  full_name: string;
   email: string;
   password: string;
 }
@@ -28,7 +28,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (full_name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 

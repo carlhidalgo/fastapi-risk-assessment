@@ -1,26 +1,19 @@
 export interface RiskAssessmentRequest {
-  company_id: number;
-  requested_amount: number;
-  loan_term_months: number;
+  company_id: string;
+  amount: number;
   purpose: string;
-  collateral_value?: number;
-  collateral_type?: string;
+  annual_revenue?: number;
+  employee_count?: number;
+  years_in_business?: number;
+  debt_to_equity_ratio?: number;
+  credit_score?: number;
 }
 
 export interface RiskAssessmentResponse {
-  company_id: number;
-  requested_amount: number;
-  loan_term_months: number;
-  purpose: string;
-  collateral_value?: number;
-  collateral_type?: string;
-  risk_score: number;
   risk_level: string;
-  recommendation: string;
+  risk_score: number;
+  recommendations: string[];
   approved: boolean;
-  max_approved_amount?: number;
-  created_at: string;
-  id: number;
 }
 
 export interface CreateRiskAssessmentData extends RiskAssessmentRequest {}

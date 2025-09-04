@@ -1,13 +1,19 @@
 from typing import List, Tuple
 
 
+def safe_get_numeric(data: dict, key: str, default: float = 0) -> float:
+    """Safely get numeric value from dict, handling None values"""
+    value = data.get(key, default)
+    return default if value is None else float(value)
+
+
 def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
     """Calculate risk score based on input parameters"""
     score = 0.0
     recommendations = []
     
     # Amount-based risk calculation
-    amount = risk_data.get('amount', 0)
+    amount = safe_get_numeric(risk_data, 'amount', 0)
     if amount > 1000000:
         score += 3.0
         recommendations.append("Large loan amount requires additional collateral")
@@ -21,20 +27,20 @@ def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
         recommendations.append("Low amount loan, expedited processing possible")
     
     # Company size impact
-    company_size = risk_data.get('company_size', '')
-    if company_size == 'startup':
+    size_category = risk_data.get('size_category', 'medium')
+    if size_category == 'startup':
         score += 2.5
         recommendations.append("Startup requires business plan review and market analysis")
-    elif company_size == 'small':
+    elif size_category == 'small':
         score += 1.5
         recommendations.append("Small business requires financial history review")
-    elif company_size == 'medium':
+    elif size_category == 'medium':
         score += 1.0
         recommendations.append("Medium business shows good stability")
-    elif company_size == 'large':
+    elif size_category == 'large':
         score += 0.5
         recommendations.append("Large business shows strong stability")
-    else:
+    else:  # enterprise
         recommendations.append("Enterprise level shows excellent stability")
     
     # Industry risk assessment
@@ -54,7 +60,7 @@ def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
         recommendations.append("Low-risk industry, favorable conditions")
     
     # Years in business
-    years_in_business = risk_data.get('years_in_business', 0)
+    years_in_business = safe_get_numeric(risk_data, 'years_in_business', 0)
     if years_in_business < 1:
         score += 3.0
         recommendations.append("New business requires extensive financial review")
@@ -68,7 +74,7 @@ def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
         recommendations.append("Well-established business with strong history")
     
     # Annual revenue assessment
-    annual_revenue = risk_data.get('annual_revenue', 0)
+    annual_revenue = safe_get_numeric(risk_data, 'annual_revenue', 0)
     if annual_revenue < 100000:
         score += 2.5
         recommendations.append("Low revenue requires additional income verification")
@@ -82,7 +88,8 @@ def calculate_risk_score(risk_data: dict) -> Tuple[str, float, List[str]]:
         recommendations.append("Strong revenue base, favorable terms possible")
     
     # Credit history impact
-    credit_score = risk_data.get('credit_score', 700)
+    credit_score = safe_get_numeric(risk_data, 'credit_score', 700)
+    
     if credit_score < 600:
         score += 3.0
         recommendations.append("Poor credit score requires cosigner or additional collateral")

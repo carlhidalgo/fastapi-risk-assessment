@@ -33,9 +33,10 @@ def assess_risk(
     risk_inputs = {
         'amount': risk_data.amount,
         'purpose': risk_data.purpose,
-        'company_size': company.size,
+        'company_size': company.company_size,  # Use company_size (number of employees)
+        'size_category': company.size.value if company.size else 'medium',  # Use size category
         'industry': company.industry,
-        'years_in_business': company.years_in_business,
+        'years_in_business': risk_data.years_in_business or 1,  # Use from request data
         'annual_revenue': company.annual_revenue,
         'credit_score': risk_data.credit_score
     }
@@ -54,9 +55,9 @@ def assess_risk(
         purpose=risk_data.purpose,
         risk_level=risk_level,
         risk_score=risk_score,
-        status="completed",
+        status="approved" if approved else "rejected",
         risk_inputs=risk_inputs,
-        recommendations=recommendations,
+        recommendations="; ".join(recommendations),  # Convert list to string
         approved=approved
     )
     
@@ -65,7 +66,6 @@ def assess_risk(
     db.refresh(risk_request)
     
     return RiskResponse(
-        request_id=str(risk_request.id),
         risk_level=risk_level,
         risk_score=risk_score,
         recommendations=recommendations,

@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
-    name: str
+    full_name: str
     password: str
 
 class UserLogin(BaseModel):
@@ -39,8 +39,11 @@ class TokenData(BaseModel):
 # Company schemas
 class CompanyBase(BaseModel):
     name: str
+    email: str
+    phone: str
     industry: str
-    size: str
+    annual_revenue: float
+    company_size: int
 
 class CompanyCreate(CompanyBase):
     pass

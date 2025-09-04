@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Float, Integer, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from enum import Enum
 
@@ -40,15 +40,39 @@ class Company(Base, IDMixin, TimestampMixin):
         doc="Company name"
     )
     
-    industry = Column(
-        SQLEnum(IndustryType),
+    email = Column(
+        String(255),
         nullable=False,
-        doc="Company industry type"
+        doc="Company email"
+    )
+    
+    phone = Column(
+        String(50),
+        nullable=False,
+        doc="Company phone"
+    )
+    
+    industry = Column(
+        String(100),
+        nullable=False,
+        doc="Company industry"
+    )
+    
+    annual_revenue = Column(
+        Float,
+        nullable=False,
+        doc="Company annual revenue"
+    )
+    
+    company_size = Column(
+        Integer,
+        nullable=False,
+        doc="Number of employees"
     )
     
     size = Column(
         SQLEnum(CompanySize),
-        nullable=False,
+        nullable=True,
         doc="Company size category"
     )
     

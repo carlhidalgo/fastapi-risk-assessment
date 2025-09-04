@@ -1,22 +1,19 @@
-import axios from 'axios';
 import { Company, CreateCompanyData } from '../types/company';
-import { API_CONFIG } from '../constants/config';
+import { api } from './authService';
 
 export class CompanyService {
-  private static baseURL = API_CONFIG.BASE_URL;
-
   static async getCompanies(): Promise<Company[]> {
-    const response = await axios.get<Company[]>(`${this.baseURL}/companies/`);
+    const response = await api.get<Company[]>('/companies/');
     return response.data;
   }
 
   static async createCompany(companyData: CreateCompanyData): Promise<Company> {
-    const response = await axios.post<Company>(`${this.baseURL}/companies/`, companyData);
+    const response = await api.post<Company>('/companies/', companyData);
     return response.data;
   }
 
   static async getCompany(id: number): Promise<Company> {
-    const response = await axios.get<Company>(`${this.baseURL}/companies/${id}`);
+    const response = await api.get<Company>(`/companies/${id}`);
     return response.data;
   }
 }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, Float, JSON, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Integer, Float, JSON, ForeignKey, Enum as SQLEnum, Boolean
 from sqlalchemy.orm import relationship
 from enum import Enum
 
@@ -38,6 +38,15 @@ class Request(Base, IDMixin, TimestampMixin):
         doc="ID of the company being assessed"
     )
     
+    # Foreign key to user
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        doc="ID of the user who created this request"
+    )
+    
     # Request details
     amount = Column(
         Float,
@@ -46,7 +55,7 @@ class Request(Base, IDMixin, TimestampMixin):
     )
     
     purpose = Column(
-        SQLEnum(RequestPurpose),
+        String(255),
         nullable=False,
         doc="Purpose of the request"
     )
@@ -71,6 +80,25 @@ class Request(Base, IDMixin, TimestampMixin):
         doc="Calculated risk score (0-100)"
     )
     
+    risk_level = Column(
+        String(50),
+        nullable=True,
+        doc="Risk level: LOW, MEDIUM, HIGH"
+    )
+    
+    approved = Column(
+        Boolean,
+        nullable=True,
+        default=False,
+        doc="Whether the request is approved based on risk assessment"
+    )
+    
+    recommendations = Column(
+        Text,
+        nullable=True,
+        doc="Risk assessment recommendations"
+    )
+    
     # Status and workflow
     status = Column(
         SQLEnum(RequestStatus),
@@ -91,6 +119,11 @@ class Request(Base, IDMixin, TimestampMixin):
         "Company",
         back_populates="requests",
         doc="Company associated with this request"
+    )
+    
+    user = relationship(
+        "User",
+        doc="User who created this request"
     )
 
     def __repr__(self) -> str:
