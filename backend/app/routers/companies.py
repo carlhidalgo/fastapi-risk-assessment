@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
 from app.models.company import Company
-from app.schemas.schemas import CompanyCreate, CompanyResponse
+from app.schemas.schemas import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.services.auth import get_current_user
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -91,3 +91,58 @@ def get_company(
         company_size=company.company_size,
         created_at=company.created_at
     )
+
+
+@router.put("/{company_id}", response_model=CompanyResponse)
+def update_company(
+    company_id: int,
+    company_data: CompanyUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a company (only if owned by current user)"""
+    company = db.query(Company).filter(
+        Company.id == company_id,
+        Company.user_id == current_user.id
+    ).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    # Update only provided fields
+    update_data = company_data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(company, field, value)
+    
+    db.commit()
+    db.refresh(company)
+    
+    return CompanyResponse(
+        id=str(company.id),
+        name=company.name,
+        email=company.email,
+        phone=company.phone,
+        industry=company.industry,
+        annual_revenue=company.annual_revenue,
+        company_size=company.company_size,
+        created_at=company.created_at
+    )
+
+
+@router.delete("/{company_id}")
+def delete_company(
+    company_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a company (only if owned by current user)"""
+    company = db.query(Company).filter(
+        Company.id == company_id,
+        Company.user_id == current_user.id
+    ).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    db.delete(company)
+    db.commit()
+    
+    return {"message": "Company deleted successfully"}

@@ -48,6 +48,14 @@ class CompanyBase(BaseModel):
 class CompanyCreate(CompanyBase):
     pass
 
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    industry: Optional[str] = None
+    annual_revenue: Optional[float] = None
+    company_size: Optional[int] = None
+
 class CompanyResponse(CompanyBase):
     id: str
     created_at: datetime
