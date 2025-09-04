@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, companies, risk
 
 app = FastAPI(
     title="FastAPI Risk Assessment",
@@ -19,10 +18,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(companies.router, prefix="/api/v1")
-app.include_router(risk.router, prefix="/api/v1")
+# Import and include routers
+try:
+    from app.routers import auth, companies, risk
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(companies.router, prefix="/api/v1")
+    app.include_router(risk.router, prefix="/api/v1")
+    print("All routers loaded successfully")
+except Exception as e:
+    print(f"Error loading routers: {e}")
+    import traceback
+    traceback.print_exc()
 
 @app.get("/health")
 def health_check():

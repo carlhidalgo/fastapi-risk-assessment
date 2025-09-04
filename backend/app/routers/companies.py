@@ -17,14 +17,15 @@ def create_company(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new company"""
+    """Create a new company for the current user"""
     company = Company(
         name=company_data.name,
         email=company_data.email,
         phone=company_data.phone,
         industry=company_data.industry,
         annual_revenue=company_data.annual_revenue,
-        company_size=company_data.company_size
+        company_size=company_data.company_size,
+        user_id=current_user.id  # Asignar al usuario actual
     )
     
     db.add(company)
@@ -48,8 +49,8 @@ def list_companies(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all companies"""
-    companies = db.query(Company).all()
+    """Get companies for the current user only"""
+    companies = db.query(Company).filter(Company.user_id == current_user.id).all()
     
     return [
         CompanyResponse(
@@ -72,8 +73,11 @@ def get_company(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get a specific company"""
-    company = db.query(Company).filter(Company.id == company_id).first()
+    """Get a specific company (only if owned by current user)"""
+    company = db.query(Company).filter(
+        Company.id == company_id,
+        Company.user_id == current_user.id  # Solo empresas del usuario actual
+    ).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     

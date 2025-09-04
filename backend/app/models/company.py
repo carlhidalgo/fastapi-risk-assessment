@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Float, Integer, Enum as SQLEnum
+from sqlalchemy import Column, String, Text, Float, Integer, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from enum import Enum
 
@@ -101,7 +101,21 @@ class Company(Base, IDMixin, TimestampMixin):
         doc="Company city"
     )
     
+    # User ownership - NUEVA RELACION
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        doc="ID of the user who owns this company"
+    )
+    
     # Relationships
+    user = relationship(
+        "User",
+        back_populates="companies",
+        doc="User who owns this company"
+    )
+    
     requests = relationship(
         "Request",
         back_populates="company",

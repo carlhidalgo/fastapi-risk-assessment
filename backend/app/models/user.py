@@ -43,6 +43,14 @@ class User(Base, IDMixin, TimestampMixin):
         nullable=False,
         doc="Whether the user has admin privileges"
     )
+    
+    # Relationships
+    companies = relationship(
+        "Company",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        doc="Companies owned by this user"
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}')>"
