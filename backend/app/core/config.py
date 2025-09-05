@@ -24,11 +24,14 @@ class Settings(BaseSettings):
             url = url.replace("postgres://", "postgresql://", 1)
         return url
     
-    # Environment - Detecta automáticamente si está en Railway
+    # Environment - Detecta automáticamente si está en Render o Railway
     @property 
     def ENVIRONMENT(self) -> str:
+        # Render establece RENDER cuando está en producción
+        if os.getenv("RENDER"):
+            return "production"
         # Railway establece RAILWAY_ENVIRONMENT cuando está en producción
-        if os.getenv("RAILWAY_ENVIRONMENT"):
+        elif os.getenv("RAILWAY_ENVIRONMENT"):
             return "production"
         return os.getenv("ENVIRONMENT", "development")
     

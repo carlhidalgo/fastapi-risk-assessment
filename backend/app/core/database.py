@@ -18,8 +18,18 @@ engine_kwargs = {
     "pool_size": 5,       # Base pool size
 }
 
-# In Railway, add more aggressive timeout settings
-if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+# Render optimization - much better for PostgreSQL
+if os.getenv("RENDER"):
+    engine_kwargs.update({
+        "echo": False,
+        "pool_timeout": 30,  # Generous timeout for Render
+        "pool_recycle": 300,  # 5 minutes
+        "pool_size": 5,      # Standard pool
+        "max_overflow": 10,  # Total 15 connections
+        "pool_reset_on_return": "commit"
+    })
+# Railway optimization (fallback)
+elif os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
     engine_kwargs.update({
         "echo": False,  # Never echo in Railway
         "pool_timeout": 10,  # Más tiempo para obtener conexión
