@@ -37,59 +37,33 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-# CORS middleware - DEBE IR PRIMERO
+# CORS middleware - DEBE IR PRIMERO SIEMPRE
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "https://fastapi-risk-assessment.vercel.app",
         "https://fastapi-risk-assessment-o98p19rwb-carlos-projects-6b913237.vercel.app",
-        "https://*.vercel.app"
+        "https://*.vercel.app",
+        "*"  # Temporal para debugging
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Middleware para manejar errores de base de datos silenciosamente en Railway
-class DatabaseErrorMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        try:
-            response = await call_next(request)
-            return response
-        except Exception as exc:
-            # En Railway, solo manejar errores específicos de conexión
-            if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
-                error_message = str(exc).lower()
-                # Solo convertir a 503 errores reales de conexión/timeout
-                if any(conn_error in error_message for conn_error in 
-                       ['connection failed', 'network is unreachable', 'timeout', 
-                        'connection refused', 'connection reset', 'pool timeout']):
-                    return JSONResponse(
-                        status_code=503,
-                        content={"detail": "Service temporarily unavailable"}
-                    )
-            
-            # Para otros errores (incluyendo 401, 404, etc.), usar el handler por defecto
-            raise exc
+# Crear tablas automáticamente al iniciar
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from app.core.database import engine, Base
+        from app.models import user, company, risk  # Import all models
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
 
-# Agregar middleware de errores solo en Railway - DESPUÉS del CORS
-if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
-    app.add_middleware(DatabaseErrorMiddleware)
-
-# Import and include routers
-try:
-    from app.routers import auth, companies, risk, requests
-    app.include_router(auth.router, prefix="/api/v1")
-    app.include_router(companies.router, prefix="/api/v1")
-    app.include_router(risk.router, prefix="/api/v1")
-    app.include_router(requests.router, prefix="/api/v1")
-    print("All routers loaded successfully")
-except Exception as e:
-    print(f"Error loading routers: {e}")
-    import traceback
-    traceback.print_exc()
-
+# Health checks primero
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
@@ -104,8 +78,20 @@ def health_check_db():
             conn.execute("SELECT 1")
         return {"status": "healthy", "database": "connected", "timestamp": datetime.now(timezone.utc)}
     except Exception as e:
-        logging.error(f"Database health check failed: {str(e)}")
         return {"status": "unhealthy", "database": "disconnected", "error": str(e), "timestamp": datetime.now(timezone.utc)}
+
+# Import and include routers
+try:
+    from app.routers import auth, companies, risk, requests
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(companies.router, prefix="/api/v1")
+    app.include_router(risk.router, prefix="/api/v1")
+    app.include_router(requests.router, prefix="/api/v1")
+    print("All routers loaded successfully")
+except Exception as e:
+    print(f"Error loading routers: {e}")
+    import traceback
+    traceback.print_exc()
 
 if __name__ == "__main__":
     import uvicorn
