@@ -26,6 +26,7 @@ def get_requests(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(10, ge=1, le=100, description="Page size"),
     search: Optional[str] = Query(None, description="Search in purpose or company name"),
+    company_id: Optional[str] = Query(None, description="Filter by company ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
     risk_level: Optional[str] = Query(None, description="Filter by risk level"),
     min_amount: Optional[float] = Query(None, description="Minimum amount"),
@@ -39,6 +40,9 @@ def get_requests(
     query = db.query(Request).filter(Request.user_id == current_user.id)
     
     # Apply filters
+    if company_id:
+        query = query.filter(Request.company_id == company_id)
+    
     if status:
         query = query.filter(Request.status == status)
     

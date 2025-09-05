@@ -80,7 +80,7 @@ const RiskAssessment: React.FC = () => {
     
     try {
       setLoading(true);
-      const requestsData = await RequestService.getRequests({ search: companyId });
+      const requestsData = await RequestService.getRequests({ company_id: companyId });
       setRequests(requestsData.items);
     } catch (error) {
       console.error('Error loading requests:', error);

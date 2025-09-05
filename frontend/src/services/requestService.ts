@@ -7,6 +7,7 @@ export class RequestService {
     page?: number;
     size?: number;
     search?: string;
+    company_id?: string;
     status?: string;
     risk_level?: string;
     min_amount?: number;
