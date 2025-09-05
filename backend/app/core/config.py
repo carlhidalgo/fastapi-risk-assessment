@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database - Lee desde variable de entorno, fallback para desarrollo local
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/fastapi_risk_db")
+    @property
+    def DATABASE_URL(self) -> str:
+        url = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/fastapi_risk_db")
+        # Convert postgres:// to postgresql:// for SQLAlchemy compatibility
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
     
     # Environment
     ENVIRONMENT: str = "development"
