@@ -37,6 +37,20 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
+# CORS middleware - DEBE IR PRIMERO
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://fastapi-risk-assessment.vercel.app",
+        "https://fastapi-risk-assessment-o98p19rwb-carlos-projects-6b913237.vercel.app",
+        "https://*.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Middleware para manejar errores de base de datos silenciosamente en Railway
 class DatabaseErrorMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -59,23 +73,9 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
             # Para otros errores (incluyendo 401, 404, etc.), usar el handler por defecto
             raise exc
 
-# Agregar middleware de errores solo en Railway
+# Agregar middleware de errores solo en Railway - DESPUÉS del CORS
 if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
     app.add_middleware(DatabaseErrorMiddleware)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://fastapi-risk-assessment.vercel.app",
-        "https://fastapi-risk-assessment-o98p19rwb-carlos-projects-6b913237.vercel.app",
-        "https://*.vercel.app"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Import and include routers
 try:
