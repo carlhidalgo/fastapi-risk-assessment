@@ -22,10 +22,12 @@ engine_kwargs = {
 if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
     engine_kwargs.update({
         "echo": False,  # Never echo in Railway
-        "pool_timeout": 10,  # Shorter timeout
-        "pool_recycle": 180,  # More frequent recycle
+        "pool_timeout": 5,  # Muy corto timeout
+        "pool_recycle": 60,  # Reciclar cada minuto
+        "pool_size": 1,      # Solo 1 conexión base
+        "max_overflow": 2,   # Máximo 3 conexiones total (1+2)
         "connect_args": {
-            "connect_timeout": 10
+            "connect_timeout": 5
         }
     })
 
