@@ -24,11 +24,20 @@ class Settings(BaseSettings):
             url = url.replace("postgres://", "postgresql://", 1)
         return url
     
-    # Environment
-    ENVIRONMENT: str = "development"
+    # Environment - Detecta automáticamente si está en Railway
+    @property 
+    def ENVIRONMENT(self) -> str:
+        # Railway establece RAILWAY_ENVIRONMENT cuando está en producción
+        if os.getenv("RAILWAY_ENVIRONMENT"):
+            return "production"
+        return os.getenv("ENVIRONMENT", "development")
     
-    # Logging
-    LOG_LEVEL: str = "INFO"
+    # Logging - Reduce logs en producción (Railway)
+    @property
+    def LOG_LEVEL(self) -> str:
+        if self.ENVIRONMENT == "production":
+            return "WARNING"  # Solo errores y warnings en producción
+        return os.getenv("LOG_LEVEL", "INFO")
 
     class Config:
         env_file = ".env"

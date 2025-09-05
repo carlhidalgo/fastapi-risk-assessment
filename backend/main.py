@@ -1,6 +1,22 @@
+import logging
+import os
 from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Configurar logging para Railway
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    # En Railway, configurar logging mínimo
+    logging.basicConfig(
+        level=logging.WARNING,
+        format='%(levelname)s: %(message)s'
+    )
+    # Desactivar logs de librerías externas
+    logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+else:
+    # En desarrollo, logging normal
+    logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="FastAPI Risk Assessment",
@@ -40,6 +56,18 @@ except Exception as e:
 def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc)}
+
+@app.get("/health/db")
+def health_check_db():
+    """Database health check endpoint"""
+    try:
+        from app.core.database import engine
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return {"status": "healthy", "database": "connected", "timestamp": datetime.now(timezone.utc)}
+    except Exception as e:
+        logging.error(f"Database health check failed: {str(e)}")
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e), "timestamp": datetime.now(timezone.utc)}
 
 if __name__ == "__main__":
     import uvicorn
