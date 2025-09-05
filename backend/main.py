@@ -57,7 +57,7 @@ app.add_middleware(
 async def startup_event():
     try:
         from app.core.database import engine, Base
-        from app.models import user, company, risk  # Import all models
+        from app.models import user, company, request  # Import all models
         Base.metadata.create_all(bind=engine)
         print("Database tables created successfully")
     except Exception as e:
