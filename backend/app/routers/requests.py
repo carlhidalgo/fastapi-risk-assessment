@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import math
 
 from app.core.database import get_db
@@ -149,8 +149,8 @@ def create_request(
         risk_inputs=request_data.risk_inputs,
         risk_score=risk_result.risk_score,
         risk_level=risk_result.risk_level,
-        status="approved" if risk_result.approved else "rejected",
-        approved=risk_result.approved
+        status="pending",  # Start as pending, can be updated later
+        approved=False     # Will be determined when status is updated
     )
     
     db.add(new_request)
@@ -263,7 +263,7 @@ def update_request(
         Company.user_id == current_user.id
     ).first()
     
-    # Recalculate risk score if relevant fields were updated
+    # Recalculate risk score only if relevant fields were updated
     if any(field in update_data for field in ["amount", "purpose", "risk_inputs"]):
         risk_data = RiskRequest(
             company_id=str(request.company_id),
@@ -279,11 +279,12 @@ def update_request(
         risk_result = calculate_risk_score(risk_data)
         request.risk_score = risk_result.risk_score
         request.risk_level = risk_result.risk_level
-        request.status = "approved" if risk_result.approved else "rejected"
-        request.approved = risk_result.approved
+        # Only update status if not manually specified
+        if "status" not in update_data:
+            request.status = "approved" if risk_result.approved else "rejected"
+            request.approved = risk_result.approved
 
-    request.updated_at = datetime.utcnow()
-    
+    request.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(request)
     
