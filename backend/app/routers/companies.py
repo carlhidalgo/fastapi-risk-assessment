@@ -67,6 +67,26 @@ def list_companies(
     ]
 
 
+@router.get("/test/no-auth", response_model=List[CompanyResponse])
+def list_companies_no_auth(db: Session = Depends(get_db)):
+    """Test endpoint - Get all companies without authentication"""
+    companies = db.query(Company).limit(5).all()  # Solo 5 para testing
+    
+    return [
+        CompanyResponse(
+            id=str(company.id),
+            name=company.name,
+            email=company.email,
+            phone=company.phone,
+            industry=company.industry,
+            annual_revenue=company.annual_revenue,
+            company_size=company.company_size,
+            created_at=company.created_at
+        )
+        for company in companies
+    ]
+
+
 @router.get("/{company_id}", response_model=CompanyResponse)
 def get_company(
     company_id: int,
