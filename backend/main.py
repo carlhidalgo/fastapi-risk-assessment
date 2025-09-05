@@ -14,8 +14,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://fastapi-risk-assessment-o98p19rwb-carlos-projects-6b913237.vercel.app"
-        
+        "https://fastapi-risk-assessment.vercel.app",
+        "https://fastapi-risk-assessment-o98p19rwb-carlos-projects-6b913237.vercel.app",
+        "https://*.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
