@@ -19,13 +19,15 @@ import {
   MenuItem,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  Skeleton
 } from '@mui/material';
 import { Add, Edit, Delete, Assessment } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { CompanyService } from '../services/companyService';
 import { Company, CompanyFormData } from '../types/company';
 import { parseErrorMessage } from '../utils/errorHandler';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 const Companies: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const Companies: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CompanyFormData>({
     name: '',
@@ -60,6 +63,7 @@ const Companies: React.FC = () => {
       setError(parseErrorMessage(error));
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -153,6 +157,45 @@ const Companies: React.FC = () => {
     }));
   };
 
+  // Componente para mostrar skeleton de filas
+  const SkeletonRow = () => (
+    <TableRow>
+      <TableCell><Skeleton variant="text" width={120} /></TableCell>
+      <TableCell><Skeleton variant="text" width={150} /></TableCell>
+      <TableCell><Skeleton variant="text" width={100} /></TableCell>
+      <TableCell><Skeleton variant="text" width={100} /></TableCell>
+      <TableCell><Skeleton variant="text" width={80} /></TableCell>
+      <TableCell><Skeleton variant="text" width={100} /></TableCell>
+      <TableCell>
+        <Box display="flex" gap={1}>
+          <Skeleton variant="circular" width={32} height={32} />
+          <Skeleton variant="circular" width={32} height={32} />
+          <Skeleton variant="circular" width={32} height={32} />
+        </Box>
+      </TableCell>
+    </TableRow>
+  );
+
+  // Si está cargando por primera vez, mostrar spinner completo
+  if (initialLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4" component="h1">
+            Empresas
+          </Typography>
+          <Skeleton variant="rectangular" width={170} height={36} sx={{ borderRadius: 1 }} />
+        </Box>
+        <LoadingSpinner 
+          size="large" 
+          message="Cargando empresas..." 
+          variant="dots"
+          color="primary"
+        />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -189,45 +232,64 @@ const Companies: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {companies.map((company) => (
-              <TableRow key={company.id}>
-                <TableCell>{company.name}</TableCell>
-                <TableCell>{company.email}</TableCell>
-                <TableCell>{company.industry}</TableCell>
-                <TableCell>${company.annual_revenue.toLocaleString()} USD</TableCell>
-                <TableCell>{company.company_size} employees</TableCell>
-                <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <Tooltip title="Evaluar Riesgo">
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => handleRiskAssessment(company)}
-                      size="small"
-                    >
-                      <Assessment />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Editar">
-                    <IconButton 
-                      color="secondary" 
-                      onClick={() => handleEdit(company)}
-                      size="small"
-                    >
-                      <Edit />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Eliminar">
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleDeleteClick(company)}
-                      size="small"
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Tooltip>
+            {loading && !initialLoading ? (
+              // Mostrar skeleton rows mientras recarga
+              <>
+                {[...Array(3)].map((_, index) => (
+                  <SkeletonRow key={`skeleton-${index}`} />
+                ))}
+              </>
+            ) : companies.length === 0 ? (
+              // Mensaje cuando no hay empresas
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No hay empresas registradas. ¡Agrega la primera empresa!
+                  </Typography>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              // Mostrar empresas normalmente
+              companies.map((company) => (
+                <TableRow key={company.id}>
+                  <TableCell>{company.name}</TableCell>
+                  <TableCell>{company.email}</TableCell>
+                  <TableCell>{company.industry}</TableCell>
+                  <TableCell>${company.annual_revenue.toLocaleString()} USD</TableCell>
+                  <TableCell>{company.company_size} employees</TableCell>
+                  <TableCell>{new Date(company.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Tooltip title="Evaluar Riesgo">
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => handleRiskAssessment(company)}
+                        size="small"
+                      >
+                        <Assessment />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Editar">
+                      <IconButton 
+                        color="secondary" 
+                        onClick={() => handleEdit(company)}
+                        size="small"
+                      >
+                        <Edit />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Eliminar">
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleDeleteClick(company)}
+                        size="small"
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
