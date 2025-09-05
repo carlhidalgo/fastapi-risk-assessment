@@ -26,22 +26,47 @@
 - Axios para API calls
 - React Router
 
-## 🚀 Instalación y Configuración
+## � Configuración para Desarrollo Local
 
-### Prerequisites
+### 1. Clonar el Repositorio
 ```bash
-# Instalar Python 3.12+
-# Instalar Node.js 18+
+git clone https://github.com/carlhidalgo/fastapi-risk-assessment.git
+cd fastapi-risk-assessment
 ```
 
-### 1. Backend Setup
+### 2. Setup Automático (Recomendado)
+
+#### Windows
+```cmd
+setup.bat
+```
+
+#### Linux/Mac
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+### 3. Setup Manual
+### 3. Setup Manual
+
+#### Backend
 ```bash
 cd backend
+
+# Crear entorno virtual
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+
+# Instalar dependencias
 pip install -r requirements.txt
 
 # Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tu DATABASE_URL de Supabase
+copy .env.example .env
+# Editar .env con tu DATABASE_URL de Supabase o PostgreSQL local
 
 # Ejecutar migraciones
 alembic upgrade head
@@ -50,15 +75,33 @@ alembic upgrade head
 python main.py
 ```
 
-### 2. Frontend Setup  
+#### Frontend  
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
+### 4. Variables de Entorno Requeridas
+
+#### Backend (.env)
+```env
+DATABASE_URL=postgresql://user:password@host:5432/database
+SECRET_KEY=tu_clave_secreta_jwt_muy_segura
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+**Nota**: Para desarrollo local, puedes usar una base de datos PostgreSQL local o una cuenta gratuita de Supabase.
+
 ## 🌐 URLs del Proyecto
 
+### 🚀 **Producción (Deploy)**
+- **Frontend**: https://fastapi-risk-assessment.vercel.app
+- **Backend API**: https://fastapi-risk-assessment-production.up.railway.app
+- **Documentación API**: https://fastapi-risk-assessment-production.up.railway.app/docs
+
+### 💻 **Local Development**
 - **API Backend**: http://localhost:8000
 - **Documentación API**: http://localhost:8000/docs
 - **Frontend**: http://localhost:3000
@@ -71,6 +114,25 @@ DATABASE_URL=postgresql://user:pass@host:5432/db
 SECRET_KEY=tu_clave_secreta_jwt
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+### Configuración de Base de Datos
+
+#### Opción 1: Supabase (Recomendado)
+1. Crear cuenta en [Supabase](https://supabase.com)
+2. Crear nuevo proyecto
+3. Ir a Settings > Database
+4. Copiar la Connection String (Session pooler)
+5. Usar en `DATABASE_URL`
+
+#### Opción 2: PostgreSQL Local
+```bash
+# Instalar PostgreSQL
+# Crear base de datos
+createdb risk_assessment
+
+# DATABASE_URL para local
+DATABASE_URL=postgresql://postgres:password@localhost:5432/risk_assessment
 ```
 
 ## 📊 Estructura del Proyecto
@@ -92,6 +154,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
     │   ├── services/       # Servicios API
     │   └── types/          # Tipos TypeScript
     └── public/
+```
 
 ## 🧪 Ejecutar Tests
 
@@ -100,6 +163,24 @@ cd backend
 python -m pytest -v
 # 33 tests passing ✅
 ```
+
+## 🎥 Demo en Vivo
+
+Puedes probar la aplicación desplegada en:
+**https://fastapi-risk-assessment.vercel.app**
+
+### Credenciales de Prueba
+```
+Email: demo@example.com
+Password: demopassword123
+```
+
+### Funcionalidades a Probar
+1. **Registro/Login** - Sistema de autenticación completo
+2. **Dashboard** - Vista general con estadísticas
+3. **Gestión de Empresas** - CRUD completo con filtros
+4. **Evaluaciones de Riesgo** - Cálculo automático de score
+5. **API Docs** - Swagger UI interactivo
 
 ## 📋 Funcionalidades Implementadas
 
@@ -161,12 +242,22 @@ GET    /api/v1/requests/stats        # Estadísticas
 
 El sistema calcula automáticamente el riesgo basado en:
 
-- **Monto solicitado** (20%)
-- **Ingresos anuales** (30%) 
-- **Tamaño de empresa** (25%)
-- **Industria** (25%)
+### Factores de Evaluación
+- **Ratio Deuda/Ingresos** (25%) - Capacidad de pago
+- **Número de Empleados** (20%) - Estabilidad empresarial  
+- **Años en el Negocio** (20%) - Experiencia y madurez
+- **Salud Financiera** (20%) - Estado económico actual
+- **Score de Crédito** (15%) - Historial crediticio
 
-**Resultado**: Score 0-100 que determina aprobación automática.
+### Escalas de Scoring
+```python
+# Score final: 0-100
+# 0-40: Alto riesgo (Rechazado)
+# 41-70: Riesgo medio (Requiere revisión)  
+# 71-100: Bajo riesgo (Aprobado automáticamente)
+```
+
+**Resultado**: Score automático que determina la recomendación de aprobación.
 
 ## 🔧 Configuración de Base de Datos
 
@@ -193,27 +284,100 @@ alembic upgrade head
 
 ## 🎯 Cumplimiento de Requisitos
 
-### ✅ Requerimientos Técnicos
-- [x] FastAPI con autenticación JWT
-- [x] SQLAlchemy 2.0 + migraciones Alembic  
-- [x] CRUD con paginación, filtros y búsqueda
-- [x] Cálculo de risk_score automático
-- [x] Tests representativos (33 tests)
-- [x] Frontend React funcional
-- [x] README claro y completo
+### ✅ Requerimientos Técnicos Completados
+- [x] **FastAPI** con autenticación JWT implementada
+- [x] **SQLAlchemy 2.0** + migraciones Alembic configuradas  
+- [x] **CRUD completo** con paginación, filtros y búsqueda
+- [x] **Cálculo de risk_score** automático con algoritmo de 5 factores
+- [x] **Tests representativos** - Suite completa de pruebas
+- [x] **Frontend React** funcional desplegado en producción
+- [x] **README** claro y documentación completa
+- [x] **Deploy en producción** - Railway + Vercel
 
-### 🏆 Criterios de Evaluación
-- [x] **Calidad del código**: Organizado, limpio, comentado
-- [x] **ORM y migraciones**: SQLAlchemy 2.0 + Alembic
-- [x] **API segura**: JWT + validaciones + manejo de errores
-- [x] **Performance**: Paginación + filtros + prevención N+1
-- [x] **Tests**: Suite completa de tests backend
-- [x] **Frontend funcional**: React + Material-UI
-- [x] **Documentación**: README completo
+### 🏆 Criterios de Evaluación Cumplidos
+- [x] **Calidad del código**: Organizado con arquitectura limpia
+- [x] **ORM y migraciones**: SQLAlchemy 2.0 + Alembic funcionando
+- [x] **API segura**: JWT + validaciones + manejo robusto de errores
+- [x] **Performance**: Paginación optimizada + connection pooling
+- [x] **Tests**: Suite completa backend (todos los endpoints)
+- [x] **Frontend funcional**: React + TypeScript + Material-UI
+- [x] **Documentación**: README completo + Swagger UI + comentarios
+
+### 📈 Extras Implementados
+- [x] **Deploy en producción** funcionando 24/7
+- [x] **CI/CD** automático desde GitHub
+- [x] **Optimizaciones de performance** (connection pooling)
+- [x] **Arquitectura escalable** con servicios separados
+- [x] **Manejo avanzado de errores** y logging
+- [x] **UI/UX moderna** con Material-UI
+
+## 🛠️ Tecnologías y Dependencias
+
+### Backend Dependencies
+```python
+fastapi>=0.104.0          # Framework web moderno
+sqlalchemy>=2.0.0         # ORM con soporte async
+alembic>=1.12.0          # Migraciones de BD
+psycopg2-binary>=2.9.0   # Driver PostgreSQL
+python-jose[cryptography] # JWT tokens
+passlib[bcrypt]          # Hash de passwords
+pytest>=7.0.0            # Testing framework
+httpx>=0.25.0            # Cliente HTTP para tests
+```
+
+### Frontend Dependencies
+```json
+{
+  "react": "^18.2.0",
+  "typescript": "^4.9.5",
+  "@mui/material": "^5.14.0",
+  "axios": "^1.5.0", 
+  "react-router-dom": "^6.15.0"
+}
+```
+
+## 📁 Estructura Detallada del Proyecto
+
+```
+fastapi-risk-assessment/
+├── backend/
+│   ├── app/
+│   │   ├── core/
+│   │   │   ├── config.py         # Configuración global
+│   │   │   ├── database.py       # Conexión BD + Session
+│   │   │   └── security.py       # JWT + Password hash
+│   │   ├── models/
+│   │   │   ├── user.py          # Modelo Usuario
+│   │   │   ├── company.py       # Modelo Empresa  
+│   │   │   └── request.py       # Modelo Evaluación
+│   │   ├── routers/
+│   │   │   ├── auth.py          # Endpoints autenticación
+│   │   │   ├── companies.py     # CRUD empresas
+│   │   │   └── requests.py      # CRUD evaluaciones
+│   │   ├── schemas/
+│   │   │   ├── user.py          # Schemas Pydantic usuarios
+│   │   │   ├── company.py       # Schemas empresas
+│   │   │   └── request.py       # Schemas evaluaciones
+│   │   ├── services/
+│   │   │   └── risk_calculator.py # Algoritmo de riesgo
+│   │   └── tests/               # Tests automatizados
+│   ├── alembic/                 # Migraciones BD
+│   ├── main.py                  # Punto entrada FastAPI
+│   ├── requirements.txt         # Dependencias Python
+│   └── .env.example            # Variables de entorno
+├── frontend/
+│   ├── src/
+│   │   ├── components/          # Componentes reutilizables
+│   │   ├── contexts/            # Context API (Auth)
+│   │   ├── pages/               # Páginas principales
+│   │   ├── services/            # Servicios API
+│   │   ├── types/               # Tipos TypeScript
+│   │   └── utils/               # Utilidades
+│   ├── package.json            # Dependencias Node.js
+│   └── tsconfig.json           # Config TypeScript
+└── README.md                   # Documentación
+```
 
 ---
 
 
-**Frontend**: React • TypeScript • Axios  
-**Deploy**: Azure Container Instances • Vercel  
-**CI/CD**: GitHub Actions
