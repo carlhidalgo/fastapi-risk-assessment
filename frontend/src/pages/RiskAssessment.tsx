@@ -38,6 +38,7 @@ const RiskAssessment: React.FC = () => {
 
   // Estado principal
   const [company, setCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [requests, setRequests] = useState<RiskRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,13 +75,25 @@ const RiskAssessment: React.FC = () => {
     }
   };
 
-  // Cargar evaluaciones de riesgo
-  const loadRequests = async () => {
-    if (!companyId) return;
+  // Cargar todas las empresas (para vista general)
+  const loadCompanies = async () => {
+    if (companyId) return; // Solo cargar si estamos en vista general
     
     try {
+      const companiesData = await CompanyService.getCompanies();
+      setCompanies(companiesData);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
+
+  // Cargar evaluaciones de riesgo
+  const loadRequests = async () => {
+    try {
       setLoading(true);
-      const requestsData = await RequestService.getRequests({ company_id: companyId });
+      // Si hay companyId, filtrar por empresa específica, si no, mostrar todas
+      const params = companyId ? { company_id: companyId } : {};
+      const requestsData = await RequestService.getRequests(params);
       setRequests(requestsData.items);
     } catch (error) {
       console.error('Error loading requests:', error);
@@ -93,6 +106,7 @@ const RiskAssessment: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       await loadCompany();
+      await loadCompanies();
       await loadRequests();
     };
     loadData();
@@ -126,10 +140,21 @@ const RiskAssessment: React.FC = () => {
     setError(null);
 
     try {
+      // Obtener la empresa según el company_id del formulario
+      let targetCompany = company;
+      if (!targetCompany && formData.company_id) {
+        targetCompany = companies.find(c => c.id === parseInt(formData.company_id)) || null;
+      }
+
+      if (!targetCompany) {
+        setError('Debe seleccionar una empresa válida');
+        return;
+      }
+
       if (editingRequest) {
-        await RequestService.updateRequestFromForm(parseInt(editingRequest.id), formData, company!);
+        await RequestService.updateRequestFromForm(parseInt(editingRequest.id), formData, targetCompany);
       } else {
-        await RequestService.createRequestFromForm(formData, company!);
+        await RequestService.createRequestFromForm(formData, targetCompany);
       }
       
       setOpen(false);
@@ -214,6 +239,11 @@ const RiskAssessment: React.FC = () => {
     }
   };
 
+  const getCompanyName = (companyId: string) => {
+    const foundCompany = companies.find(c => c.id === parseInt(companyId));
+    return foundCompany ? foundCompany.name : `Empresa ID: ${companyId}`;
+  };
+
   if (loading && !company) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
@@ -229,17 +259,22 @@ const RiskAssessment: React.FC = () => {
         <Box>
           <Button
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/companies')}
+            onClick={() => navigate(companyId ? '/companies' : '/dashboard')}
             sx={{ mb: 2 }}
           >
-            Volver a Empresas
+            {companyId ? 'Volver a Empresas' : 'Volver al Dashboard'}
           </Button>
           <Typography variant="h4" component="h1" gutterBottom>
-            Evaluaciones de Riesgo
+            {companyId ? 'Evaluaciones de Riesgo' : 'Todas las Evaluaciones de Riesgo'}
           </Typography>
           {company && (
             <Typography variant="h6" color="text.secondary">
               {company.name} - {company.industry}
+            </Typography>
+          )}
+          {!companyId && (
+            <Typography variant="h6" color="text.secondary">
+              Vista general de todas las evaluaciones
             </Typography>
           )}
         </Box>
@@ -263,6 +298,7 @@ const RiskAssessment: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha</TableCell>
+                  {!companyId && <TableCell>Empresa</TableCell>}
                   <TableCell>Monto (USD)</TableCell>
                   <TableCell>Propósito</TableCell>
                   <TableCell>Puntuación de Riesgo</TableCell>
@@ -277,6 +313,13 @@ const RiskAssessment: React.FC = () => {
                     <TableCell>
                       {new Date(request.created_at).toLocaleDateString('es-ES')}
                     </TableCell>
+                    {!companyId && (
+                      <TableCell>
+                        <Typography variant="body2">
+                          {getCompanyName(request.company_id)}
+                        </Typography>
+                      </TableCell>
+                    )}
                     <TableCell>${request.amount.toLocaleString()}</TableCell>
                     <TableCell>{request.purpose}</TableCell>
                     <TableCell>
@@ -321,7 +364,7 @@ const RiskAssessment: React.FC = () => {
                 ))}
                 {requests.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={companyId ? 7 : 8} align="center">
                       <Typography variant="body2" color="text.secondary">
                         No hay evaluaciones de riesgo registradas
                       </Typography>
@@ -373,6 +416,28 @@ const RiskAssessment: React.FC = () => {
             
             {/* Formulario de evaluación */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Selector de empresa (solo en vista general) */}
+              {!companyId && (
+                <TextField
+                  select
+                  label="Seleccionar Empresa"
+                  fullWidth
+                  value={formData.company_id}
+                  onChange={handleInputChange('company_id')}
+                  required
+                  SelectProps={{
+                    native: true,
+                  }}
+                >
+                  <option value="">Seleccione una empresa</option>
+                  {companies.map((comp) => (
+                    <option key={comp.id} value={comp.id}>
+                      {comp.name} - {comp.industry}
+                    </option>
+                  ))}
+                </TextField>
+              )}
+              
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   label="Monto del Préstamo (USD)"
