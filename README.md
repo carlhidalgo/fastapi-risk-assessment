@@ -33,22 +33,7 @@
 git clone https://github.com/carlhidalgo/fastapi-risk-assessment.git
 cd fastapi-risk-assessment
 ```
-
-### 2. Setup Automático (Recomendado)
-
-#### Windows
-```cmd
-setup.bat
-```
-
-#### Linux/Mac
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-### 3. Setup Manual
-### 3. Setup Manual
+### . Setup Manual
 
 #### Backend
 ```bash
