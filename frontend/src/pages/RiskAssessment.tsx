@@ -65,23 +65,20 @@ const RiskAssessment: React.FC = () => {
     if (!companyId) return;
     
     try {
-      setLoading(true);
       const companyData = await CompanyService.getCompany(parseInt(companyId));
       setCompany(companyData);
     } catch (error) {
       console.error('Error loading company:', error);
       setError('Error al cargar la empresa');
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Cargar todas las empresas (para vista general)
+  // Cargar todas las empresas (necesario para ambas vistas)
   const loadCompanies = async () => {
-    if (companyId) return; // Solo cargar si estamos en vista general
-    
     try {
+      console.log('Loading companies...');
       const companiesData = await CompanyService.getCompanies();
+      console.log('Companies loaded successfully:', companiesData);
       setCompanies(companiesData);
     } catch (error) {
       console.error('Error loading companies:', error);
@@ -91,7 +88,6 @@ const RiskAssessment: React.FC = () => {
   // Cargar evaluaciones de riesgo
   const loadRequests = async () => {
     try {
-      setLoading(true);
       // Si hay companyId, filtrar por empresa específica, si no, mostrar todas
       const params = companyId ? { company_id: companyId } : {};
       const requestsData = await RequestService.getRequests(params);
@@ -99,16 +95,34 @@ const RiskAssessment: React.FC = () => {
     } catch (error) {
       console.error('Error loading requests:', error);
       setError('Error al cargar las evaluaciones de riesgo');
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     const loadData = async () => {
-      await loadCompany();
+      console.log('useEffect triggered, companyId:', companyId);
+      
+      // Limpiar estado anterior cuando se cambia de vista
+      setError(null);
+      setLoading(true);
+      
+      // Limpiar estado específico basado en el tipo de vista
+      if (companyId) {
+        // Vista específica de empresa: limpiar companies array y cargar empresa específica
+        console.log('Loading specific company view');
+        setCompanies([]);
+        await loadCompany();
+      } else {
+        // Vista general: limpiar company específica
+        console.log('Loading general view');
+        setCompany(null);
+      }
+      
+      // Siempre cargar empresas (necesario para resolver nombres) y requests
       await loadCompanies();
       await loadRequests();
+      
+      setLoading(false);
     };
     loadData();
   }, [companyId]);
@@ -141,13 +155,32 @@ const RiskAssessment: React.FC = () => {
     setError(null);
 
     try {
+      console.log('handleSubmit - formData.company_id:', formData.company_id);
+      console.log('handleSubmit - companies:', companies);
+      console.log('handleSubmit - current company:', company);
+      
       // Obtener la empresa según el company_id del formulario
       let targetCompany = company;
       if (!targetCompany && formData.company_id) {
-        targetCompany = companies.find(c => c.id === parseInt(formData.company_id)) || null;
+        // Intentar buscar por ID numérico
+        const numericId = parseInt(formData.company_id);
+        targetCompany = companies.find(c => c.id === numericId) || null;
+        
+        // Si no se encuentra, intentar búsqueda por string
+        if (!targetCompany) {
+          targetCompany = companies.find(c => String(c.id) === formData.company_id) || null;
+        }
+        
+        console.log('Search results:', { 
+          numericId, 
+          stringId: formData.company_id,
+          foundCompany: targetCompany 
+        });
       }
 
       if (!targetCompany) {
+        console.error('No company found - formData.company_id:', formData.company_id);
+        console.error('Available companies:', companies.map(c => ({ id: c.id, name: c.name })));
         setError('Debe seleccionar una empresa válida');
         return;
       }
@@ -241,7 +274,25 @@ const RiskAssessment: React.FC = () => {
   };
 
   const getCompanyName = (companyId: string) => {
-    const foundCompany = companies.find(c => c.id === parseInt(companyId));
+    console.log('getCompanyName called with:', { companyId, companies, companiesLength: companies.length });
+    
+    // Intentar encontrar por ID como número (tipo original)
+    const numericId = parseInt(companyId);
+    let foundCompany = companies.find(c => c.id === numericId);
+    
+    // Si no se encuentra, intentar como string
+    if (!foundCompany) {
+      foundCompany = companies.find(c => String(c.id) === companyId);
+    }
+    
+    console.log('Search results:', { 
+      numericId, 
+      foundByNumber: companies.find(c => c.id === numericId),
+      foundByString: companies.find(c => String(c.id) === companyId),
+      finalFound: foundCompany,
+      companyIds: companies.map(c => ({ id: c.id, type: typeof c.id, name: c.name }))
+    });
+    
     return foundCompany ? foundCompany.name : `Empresa ID: ${companyId}`;
   };
 
@@ -435,7 +486,10 @@ const RiskAssessment: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {requests.map((request) => (
+                {/* Solo mostrar evaluaciones si:
+                    1. Es vista específica (companyId existe), O
+                    2. Es vista general Y las empresas están cargadas */}
+                {(companyId || (!companyId && companies.length > 0)) && requests.map((request) => (
                   <TableRow 
                     key={request.id}
                     sx={{
@@ -556,7 +610,20 @@ const RiskAssessment: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {requests.length === 0 && (
+                
+                {/* Mensaje cuando no hay empresas cargadas en vista general */}
+                {!companyId && companies.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Cargando información de empresas...
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+                
+                {/* Mensaje cuando no hay evaluaciones (solo si tenemos empresas o es vista específica) */}
+                {((companyId || (!companyId && companies.length > 0)) && requests.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={companyId ? 7 : 8} align="center" sx={{ py: 6 }}>
                       <Box 
@@ -686,6 +753,7 @@ const RiskAssessment: React.FC = () => {
                   onChange={handleInputChange('amount')}
                   required
                   inputProps={{ min: 0 }}
+                  helperText="Cantidad solicitada en dólares"
                 />
                 <TextField
                   label="Propósito del Préstamo"
@@ -693,6 +761,7 @@ const RiskAssessment: React.FC = () => {
                   value={formData.purpose}
                   onChange={handleInputChange('purpose')}
                   required
+                  helperText="Ej: expansión, inventario, equipos"
                 />
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -704,15 +773,17 @@ const RiskAssessment: React.FC = () => {
                   onChange={handleInputChange('years_in_business')}
                   required
                   inputProps={{ min: 0 }}
+                  helperText="Tiempo de operación de la empresa"
                 />
                 <TextField
-                  label="Puntuación de Crédito"
+                  label="Puntuación de Crédito (FICO)"
                   type="number"
                   fullWidth
                   value={formData.credit_score}
                   onChange={handleInputChange('credit_score')}
                   required
                   inputProps={{ min: 300, max: 850 }}
+                  helperText="Rango: 300-850 (mayor es mejor)"
                 />
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -724,14 +795,16 @@ const RiskAssessment: React.FC = () => {
                   onChange={handleInputChange('debt_to_equity_ratio')}
                   required
                   inputProps={{ min: 0, step: 0.01 }}
+                  helperText="Ejemplo: 0.5 = 50% deuda vs patrimonio"
                 />
                 <TextField
-                  label="Flujo de Caja (USD)"
+                  label="Flujo de Caja Anual (USD)"
                   type="number"
                   fullWidth
                   value={formData.cash_flow}
                   onChange={handleInputChange('cash_flow')}
                   required
+                  helperText="Flujo de caja promedio anual"
                 />
               </Box>
             </Box>

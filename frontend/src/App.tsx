@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import RiskAssessment from './pages/RiskAssessment';
 import './styles/animations.css';
+import './styles/enhanced-animations.css';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();

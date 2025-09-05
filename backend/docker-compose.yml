@@ -1,27 +1,49 @@
 version: '3.8'
+
 services:
+  # Backend API Service
   api:
-    build: .
-    container_name: fastapi_app
+    build: ./backend
+    container_name: fastapi_risk_assessment_api
     ports:
       - "8000:80"
-    volumes:
-      - .:/app
-    depends_on:
-      - db
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
-  db:
-    image: postgres:16
-    container_name: postgres_db
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      # Database - usando Supabase
+      - DATABASE_URL=${DATABASE_URL}
+      # JWT Security
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      # API Configuration
+      - API_V1_STR=${API_V1_STR}
+      - ENVIRONMENT=production
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: risk_assessment_frontend
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-volumes:
-  postgres_data:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - api
+
+networks:
+  app-network:
+    driver: bridge

@@ -16,6 +16,6 @@ COPY . /app
 # Exponer el puerto 80 (donde correrá FastAPI)
 EXPOSE 80
 
-# Comando para ejecutar la aplicación usando FastAPI CLI (forma recomendada en 2025)
+# Comando para ejecutar la aplicación usando uvicorn
 # Usa la forma exec para permitir que FastAPI maneje señales correctamente
-CMD ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

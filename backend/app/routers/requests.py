@@ -14,9 +14,11 @@ from app.schemas.schemas import (
     RequestUpdate, 
     RequestResponse, 
     RequestListResponse,
-    PaginatedRequestsResponse
+    PaginatedRequestsResponse,
+    RiskRequest
 )
 from app.services.auth import get_current_user
+from app.services.risk_calculator import calculate_risk_score
 
 router = APIRouter(prefix="/requests", tags=["requests"])
 
@@ -123,6 +125,21 @@ def create_request(
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     
+    # Create risk assessment data for calculation
+    risk_data = RiskRequest(
+        company_id=request_data.company_id,
+        amount=request_data.amount,
+        purpose=request_data.purpose,
+        annual_revenue=request_data.risk_inputs.get('annual_revenue', company.annual_revenue),
+        employee_count=request_data.risk_inputs.get('employee_count', company.company_size),
+        years_in_business=request_data.risk_inputs.get('years_in_business'),
+        debt_to_equity_ratio=request_data.risk_inputs.get('debt_to_equity_ratio'),
+        credit_score=request_data.risk_inputs.get('credit_score')
+    )
+    
+    # Calculate risk score
+    risk_result = calculate_risk_score(risk_data)
+
     # Create request
     new_request = Request(
         user_id=current_user.id,
@@ -130,10 +147,10 @@ def create_request(
         amount=request_data.amount,
         purpose=request_data.purpose,
         risk_inputs=request_data.risk_inputs,
-        risk_score=0.0,  # Will be calculated
-        risk_level="pending",
-        status="pending",
-        approved=False
+        risk_score=risk_result.risk_score,
+        risk_level=risk_result.risk_level,
+        status="approved" if risk_result.approved else "rejected",
+        approved=risk_result.approved
     )
     
     db.add(new_request)
@@ -240,6 +257,31 @@ def update_request(
         if field != "company_id" and hasattr(request, field):
             setattr(request, field, value)
     
+    # Get company for risk calculation
+    company = db.query(Company).filter(
+        Company.id == request.company_id,
+        Company.user_id == current_user.id
+    ).first()
+    
+    # Recalculate risk score if relevant fields were updated
+    if any(field in update_data for field in ["amount", "purpose", "risk_inputs"]):
+        risk_data = RiskRequest(
+            company_id=str(request.company_id),
+            amount=request.amount,
+            purpose=request.purpose,
+            annual_revenue=request.risk_inputs.get('annual_revenue', company.annual_revenue if company else None),
+            employee_count=request.risk_inputs.get('employee_count', company.company_size if company else None),
+            years_in_business=request.risk_inputs.get('years_in_business'),
+            debt_to_equity_ratio=request.risk_inputs.get('debt_to_equity_ratio'),
+            credit_score=request.risk_inputs.get('credit_score')
+        )
+        
+        risk_result = calculate_risk_score(risk_data)
+        request.risk_score = risk_result.risk_score
+        request.risk_level = risk_result.risk_level
+        request.status = "approved" if risk_result.approved else "rejected"
+        request.approved = risk_result.approved
+
     request.updated_at = datetime.utcnow()
     
     db.commit()
