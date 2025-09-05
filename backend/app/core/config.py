@@ -1,5 +1,6 @@
 from typing import List
 from pydantic_settings import BaseSettings
+import os
 
 
 class Settings(BaseSettings):
@@ -14,8 +15,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # Database
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/fastapi_risk_db"
+    # Database - Lee desde variable de entorno, fallback para desarrollo local
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/fastapi_risk_db")
     
     # Environment
     ENVIRONMENT: str = "development"
@@ -30,3 +31,8 @@ class Settings(BaseSettings):
 
 # Create settings instance
 settings = Settings()
+
+# Debug: Print database URL (sin mostrar credenciales completas)
+db_url_masked = settings.DATABASE_URL.replace(settings.DATABASE_URL.split('@')[0].split('//')[1], '***') if '@' in settings.DATABASE_URL else settings.DATABASE_URL
+print(f"Database connection URL: {db_url_masked}")
+print(f"Environment: {settings.ENVIRONMENT}")
