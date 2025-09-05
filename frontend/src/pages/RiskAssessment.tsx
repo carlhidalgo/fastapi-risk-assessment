@@ -125,7 +125,7 @@ const RiskAssessment: React.FC = () => {
       setLoading(false);
     };
     loadData();
-  }, [companyId]);
+  }, [companyId, loadCompany, loadRequests, loadCompanies]);
 
   const parseErrorMessage = (error: any): string => {
     if (error?.response?.data?.detail) {

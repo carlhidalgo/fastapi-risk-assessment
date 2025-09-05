@@ -2,12 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
-  Paper,
   Box,
-  Card,
-  CardContent,
-  Button,
-  Chip
+  Button
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { Add, Business, Assessment, TrendingUp } from '@mui/icons-material';

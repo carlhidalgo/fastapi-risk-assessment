@@ -213,7 +213,7 @@ alembic upgrade head
 
 ---
 
-> 💡 **Proyecto completado al 100%** - Listo para revisión técnica  
+
 **Frontend**: React • TypeScript • Axios  
 **Deploy**: Azure Container Instances • Vercel  
 **CI/CD**: GitHub Actions
