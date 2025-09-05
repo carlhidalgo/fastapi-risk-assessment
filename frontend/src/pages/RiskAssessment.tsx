@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -61,7 +61,7 @@ const RiskAssessment: React.FC = () => {
   });
 
   // Cargar datos de la empresa
-  const loadCompany = async () => {
+  const loadCompany = useCallback(async () => {
     if (!companyId) return;
     
     try {
@@ -71,10 +71,10 @@ const RiskAssessment: React.FC = () => {
       console.error('Error loading company:', error);
       setError('Error al cargar la empresa');
     }
-  };
+  }, [companyId]);
 
   // Cargar todas las empresas (necesario para ambas vistas)
-  const loadCompanies = async () => {
+  const loadCompanies = useCallback(async () => {
     try {
       console.log('Loading companies...');
       const companiesData = await CompanyService.getCompanies();
@@ -83,10 +83,10 @@ const RiskAssessment: React.FC = () => {
     } catch (error) {
       console.error('Error loading companies:', error);
     }
-  };
+  }, []);
 
   // Cargar evaluaciones de riesgo
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       // Si hay companyId, filtrar por empresa específica, si no, mostrar todas
       const params = companyId ? { company_id: companyId } : {};
@@ -96,7 +96,7 @@ const RiskAssessment: React.FC = () => {
       console.error('Error loading requests:', error);
       setError('Error al cargar las evaluaciones de riesgo');
     }
-  };
+  }, [companyId]);
 
   useEffect(() => {
     const loadData = async () => {
