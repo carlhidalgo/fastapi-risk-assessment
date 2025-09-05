@@ -25,10 +25,7 @@ if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
         "pool_timeout": 10,  # Shorter timeout
         "pool_recycle": 180,  # More frequent recycle
         "connect_args": {
-            "connect_timeout": 10,
-            "server_settings": {
-                "application_name": "fastapi_railway"
-            }
+            "connect_timeout": 10
         }
     })
 
