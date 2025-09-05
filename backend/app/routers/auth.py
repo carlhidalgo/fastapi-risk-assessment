@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 
@@ -46,16 +47,39 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Login user and return access token"""
-    user = authenticate_user(db, user_credentials.email, user_credentials.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        # Debug logging (solo en desarrollo)
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"Login attempt for email: {user_credentials.email}")
+        
+        user = authenticate_user(db, user_credentials.email, user_credentials.password)
+        if not user:
+            # Debug logging (solo en desarrollo)
+            if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+                print(f"Authentication failed for email: {user_credentials.email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Debug logging (solo en desarrollo)
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"Authentication successful for user: {user.id}")
+        
+        access_token = create_access_token(data={"sub": str(user.id)})
+        return Token(access_token=access_token, token_type="bearer")
     
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return Token(access_token=access_token, token_type="bearer")
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Debug logging para errores inesperados
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"Unexpected error in login: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
 
 @router.get("/me", response_model=UserResponse)
@@ -67,3 +91,37 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
         full_name=current_user.full_name,
         created_at=current_user.created_at
     )
+
+
+@router.post("/debug/create-test-user")
+def create_test_user(db: Session = Depends(get_db)):
+    """Create a test user for debugging - REMOVE IN PRODUCTION"""
+    # Solo permitir en desarrollo o si no hay usuarios
+    user_count = db.query(User).count()
+    
+    test_email = "test@example.com"
+    existing_user = db.query(User).filter(User.email == test_email).first()
+    
+    if existing_user:
+        return {"message": "Test user already exists", "email": test_email}
+    
+    hashed_password = hash_password("test123")
+    
+    user = User(
+        email=test_email,
+        hashed_password=hashed_password,
+        full_name="Test User",
+        is_active=True,
+        is_superuser=False
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "message": "Test user created successfully", 
+        "email": test_email, 
+        "password": "test123",
+        "user_id": user.id
+    }

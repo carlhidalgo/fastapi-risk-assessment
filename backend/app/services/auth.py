@@ -82,10 +82,32 @@ def get_current_user(
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     """Authenticate a user with email and password"""
     try:
+        # Debug logging (solo en desarrollo)
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"authenticate_user called with email: {email}")
+        
         user = db.query(User).filter(User.email == email).first()
-        if not user or not verify_password(password, user.hashed_password):
+        
+        # Debug logging (solo en desarrollo)
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"User found: {user is not None}")
+            if user:
+                print(f"User ID: {user.id}, Email: {user.email}")
+        
+        if not user:
             return None
+            
+        password_valid = verify_password(password, user.hashed_password)
+        
+        # Debug logging (solo en desarrollo)
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            print(f"Password valid: {password_valid}")
+        
+        if not password_valid:
+            return None
+            
         return user
+        
     except Exception as e:
         # Log only critical errors, not connection issues, and only in development
         error_msg = str(e).lower()
@@ -96,5 +118,6 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
         if not is_connection_error and not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
             import logging
             logging.error(f"Database error in authenticate_user: {str(e)}")
+            print(f"Exception in authenticate_user: {str(e)}")
         
         return None
