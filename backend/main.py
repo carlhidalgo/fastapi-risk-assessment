@@ -16,6 +16,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://*.vercel.app",
         "https://vercel.app",
+        "https://fastapi-risk-assessment.vercel.app",
         "https://*.up.railway.app"
     ],
     allow_credentials=True,
