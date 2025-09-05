@@ -44,16 +44,19 @@ class DatabaseErrorMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             return response
         except Exception as exc:
-            # En Railway, no logear errores de conexión de DB
+            # En Railway, solo manejar errores específicos de conexión
             if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
-                if any(error_type in str(exc).lower() for error_type in 
-                       ['connection', 'network', 'timeout', 'pool', 'sqlalchemy']):
+                error_message = str(exc).lower()
+                # Solo convertir a 503 errores reales de conexión/timeout
+                if any(conn_error in error_message for conn_error in 
+                       ['connection failed', 'network is unreachable', 'timeout', 
+                        'connection refused', 'connection reset', 'pool timeout']):
                     return JSONResponse(
                         status_code=503,
                         content={"detail": "Service temporarily unavailable"}
                     )
             
-            # Para otros errores, usar el handler por defecto
+            # Para otros errores (incluyendo 401, 404, etc.), usar el handler por defecto
             raise exc
 
 # Agregar middleware de errores solo en Railway

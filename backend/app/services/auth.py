@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+import os
 
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -57,12 +58,25 @@ def get_current_user(
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
         return user
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        # Log only critical errors, not connection issues
-        if not any(error_type in str(e).lower() for error_type in ['connection', 'network', 'timeout']):
+        # Log only critical errors, not connection issues, and only in development
+        error_msg = str(e).lower()
+        is_connection_error = any(conn_error in error_msg for conn_error in 
+                                ['connection failed', 'network is unreachable', 'timeout', 
+                                 'connection refused', 'connection reset', 'pool timeout'])
+        
+        if not is_connection_error and not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
             import logging
             logging.error(f"Database error in get_current_user: {str(e)}")
-        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+        
+        # For connection errors, return 503; for other DB errors, return 401
+        if is_connection_error:
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+        else:
+            raise HTTPException(status_code=401, detail="Authentication failed")
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
@@ -73,8 +87,14 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
             return None
         return user
     except Exception as e:
-        # Log only critical errors, not connection issues
-        if not any(error_type in str(e).lower() for error_type in ['connection', 'network', 'timeout']):
+        # Log only critical errors, not connection issues, and only in development
+        error_msg = str(e).lower()
+        is_connection_error = any(conn_error in error_msg for conn_error in 
+                                ['connection failed', 'network is unreachable', 'timeout', 
+                                 'connection refused', 'connection reset', 'pool timeout'])
+        
+        if not is_connection_error and not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
             import logging
             logging.error(f"Database error in authenticate_user: {str(e)}")
+        
         return None
