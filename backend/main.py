@@ -80,6 +80,19 @@ def health_check_db():
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e), "timestamp": datetime.now(timezone.utc)}
 
+@app.get("/health/tables")
+def health_check_tables():
+    """Check if database tables exist"""
+    try:
+        from app.core.database import engine
+        with engine.connect() as conn:
+            # Check if users table exists
+            result = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+            tables = [row[0] for row in result]
+        return {"status": "healthy", "tables": tables, "timestamp": datetime.now(timezone.utc)}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e), "timestamp": datetime.now(timezone.utc)}
+
 # Import and include routers
 try:
     from app.routers import auth, companies, risk, requests
