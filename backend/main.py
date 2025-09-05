@@ -1,19 +1,31 @@
 import logging
 import os
 from datetime import datetime, timezone
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
-# Configurar logging para Railway
-if os.getenv("RAILWAY_ENVIRONMENT"):
+# Configurar logging de manera más agresiva para Railway
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
     # En Railway, configurar logging mínimo
     logging.basicConfig(
-        level=logging.WARNING,
-        format='%(levelname)s: %(message)s'
+        level=logging.ERROR,  # Solo errores críticos
+        format='%(levelname)s: %(message)s',
+        handlers=[logging.StreamHandler()]
     )
-    # Desactivar logs de librerías externas
-    logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+    # Desactivar completamente logs de librerías externas
+    logging.getLogger("uvicorn").setLevel(logging.CRITICAL)
+    logging.getLogger("uvicorn.access").setLevel(logging.CRITICAL)
+    logging.getLogger("uvicorn.error").setLevel(logging.CRITICAL)
+    logging.getLogger("sqlalchemy").setLevel(logging.CRITICAL)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.CRITICAL)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.CRITICAL)
+    logging.getLogger("fastapi").setLevel(logging.ERROR)
+    logging.getLogger("starlette").setLevel(logging.ERROR)
+    
+    # Desactivar el root logger también
+    logging.getLogger().setLevel(logging.CRITICAL)
 else:
     # En desarrollo, logging normal
     logging.basicConfig(level=logging.INFO)
@@ -24,6 +36,29 @@ app = FastAPI(
     version="1.0.0",
     openapi_url="/api/v1/openapi.json"
 )
+
+# Middleware para manejar errores de base de datos silenciosamente en Railway
+class DatabaseErrorMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        try:
+            response = await call_next(request)
+            return response
+        except Exception as exc:
+            # En Railway, no logear errores de conexión de DB
+            if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+                if any(error_type in str(exc).lower() for error_type in 
+                       ['connection', 'network', 'timeout', 'pool', 'sqlalchemy']):
+                    return JSONResponse(
+                        status_code=503,
+                        content={"detail": "Service temporarily unavailable"}
+                    )
+            
+            # Para otros errores, usar el handler por defecto
+            raise exc
+
+# Agregar middleware de errores solo en Railway
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+    app.add_middleware(DatabaseErrorMiddleware)
 
 # CORS middleware
 app.add_middleware(

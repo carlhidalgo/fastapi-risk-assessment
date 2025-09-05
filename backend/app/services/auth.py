@@ -51,15 +51,30 @@ def get_current_user(
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid user ID format")
     
-    user = db.query(User).filter(User.id == user_id_int).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+    # Improved database query with error handling
+    try:
+        user = db.query(User).filter(User.id == user_id_int).first()
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    except Exception as e:
+        # Log only critical errors, not connection issues
+        if not any(error_type in str(e).lower() for error_type in ['connection', 'network', 'timeout']):
+            import logging
+            logging.error(f"Database error in get_current_user: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     """Authenticate a user with email and password"""
-    user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, user.hashed_password):
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if not user or not verify_password(password, user.hashed_password):
+            return None
+        return user
+    except Exception as e:
+        # Log only critical errors, not connection issues
+        if not any(error_type in str(e).lower() for error_type in ['connection', 'network', 'timeout']):
+            import logging
+            logging.error(f"Database error in authenticate_user: {str(e)}")
         return None
-    return user

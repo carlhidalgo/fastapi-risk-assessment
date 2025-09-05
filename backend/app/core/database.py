@@ -1,21 +1,38 @@
 from typing import Generator
 import logging
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, DisconnectionError, TimeoutError
 
 from app.core.config import settings
 
-# Create engine with better error handling
-engine = create_engine(
-    str(settings.DATABASE_URL),
-    echo=settings.ENVIRONMENT == "development",  # Log SQL queries in development
-    pool_pre_ping=True,
-    pool_recycle=300,  # Recycle connections every 5 minutes
-    pool_timeout=20,   # Timeout after 20 seconds
-    max_overflow=10,   # Allow 10 additional connections beyond pool_size
-)
+# Create engine with better error handling and connection pooling
+engine_kwargs = {
+    "echo": settings.ENVIRONMENT == "development",  # Log SQL queries in development
+    "pool_pre_ping": True,
+    "pool_recycle": 300,  # Recycle connections every 5 minutes
+    "pool_timeout": 20,   # Timeout after 20 seconds
+    "max_overflow": 10,   # Allow 10 additional connections beyond pool_size
+    "pool_size": 5,       # Base pool size
+}
+
+# In Railway, add more aggressive timeout settings
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+    engine_kwargs.update({
+        "echo": False,  # Never echo in Railway
+        "pool_timeout": 10,  # Shorter timeout
+        "pool_recycle": 180,  # More frequent recycle
+        "connect_args": {
+            "connect_timeout": 10,
+            "server_settings": {
+                "application_name": "fastapi_railway"
+            }
+        }
+    })
+
+engine = create_engine(str(settings.DATABASE_URL), **engine_kwargs)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -29,9 +46,17 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
-    except SQLAlchemyError as e:
+    except (SQLAlchemyError, DisconnectionError, TimeoutError) as e:
         db.rollback()
-        logging.error(f"Database error: {str(e)}")
+        # Only log in development or for critical errors
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            logging.error(f"Database error: {str(e)}")
+        raise
+    except Exception as e:
+        db.rollback()
+        # Suppress connection-related errors in Railway
+        if not (os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")):
+            logging.error(f"Unexpected database error: {str(e)}")
         raise
     finally:
         db.close()
