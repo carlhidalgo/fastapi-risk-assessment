@@ -116,6 +116,7 @@ class RequestListResponse(BaseModel):
     company_id: str
     amount: float
     purpose: str
+    risk_inputs: dict
     status: str
     risk_level: Optional[str] = None
     risk_score: float

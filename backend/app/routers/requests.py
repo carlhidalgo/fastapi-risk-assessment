@@ -83,6 +83,7 @@ def get_requests(
             company_id=str(req.company_id),
             amount=req.amount,
             purpose=req.purpose,
+            risk_inputs=req.risk_inputs,
             status=req.status,
             risk_level=req.risk_level,
             risk_score=req.risk_score,

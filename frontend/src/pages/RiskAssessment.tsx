@@ -25,12 +25,13 @@ import {
   DialogActions,
   Fab
 } from '@mui/material';
-import { Add, Edit, Delete, ArrowBack } from '@mui/icons-material';
+import { Add, Edit, Delete, ArrowBack, TrendingUp, Assessment } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CompanyService } from '../services/companyService';
 import { RequestService } from '../services/requestService';
 import { Company } from '../types/company';
 import { RiskRequest, RequestFormData } from '../types/request';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 const RiskAssessment: React.FC = () => {
   const { companyId } = useParams<{ companyId: string }>();
@@ -244,36 +245,105 @@ const RiskAssessment: React.FC = () => {
     return foundCompany ? foundCompany.name : `Empresa ID: ${companyId}`;
   };
 
-  if (loading && !company) {
+  if (loading && !company && requests.length === 0) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          mt: 4, 
+          display: 'flex', 
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh',
+          flexDirection: 'column',
+          gap: 2
+        }}
+      >
+        <LoadingSpinner variant="dots" size="large" />
+        <Typography 
+          variant="h6" 
+          color="text.secondary"
+          sx={{ 
+            opacity: 0.7,
+            textAlign: 'center',
+            fontWeight: 400,
+            background: 'linear-gradient(45deg, #2563eb 30%, #10b981 90%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Cargando evaluaciones de riesgo...
+        </Typography>
       </Container>
     );
   }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
+      {/* Header con estilos mejorados */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
           <Button
             startIcon={<ArrowBack />}
             onClick={() => navigate(companyId ? '/companies' : '/dashboard')}
-            sx={{ mb: 2 }}
+            sx={{ 
+              mb: 2,
+              '&:hover': {
+                transform: 'translateX(-4px)',
+                transition: 'transform 0.2s ease-in-out'
+              }
+            }}
+            className="hover-lift"
           >
             {companyId ? 'Volver a Empresas' : 'Volver al Dashboard'}
           </Button>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {companyId ? 'Evaluaciones de Riesgo' : 'Todas las Evaluaciones de Riesgo'}
-          </Typography>
-          {company && (
-            <Typography variant="h6" color="text.secondary">
-              {company.name} - {company.industry}
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <TrendingUp sx={{ fontSize: 40, color: 'primary.main' }} />
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 700,
+                background: 'linear-gradient(45deg, #2563eb 30%, #10b981 90%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {companyId ? 'Evaluaciones de Riesgo' : 'Todas las Evaluaciones de Riesgo'}
             </Typography>
+          </Box>
+          
+          {company && (
+            <Card sx={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              mb: 2,
+              borderRadius: 3,
+              maxWidth: 400
+            }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {company.name}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  {company.industry} • {company.company_size ? `${company.company_size} empleados` : 'Tamaño no especificado'}
+                </Typography>
+              </CardContent>
+            </Card>
           )}
+          
           {!companyId && (
-            <Typography variant="h6" color="text.secondary">
+            <Typography 
+              variant="h6" 
+              color="text.secondary" 
+              sx={{ 
+                opacity: 0.8,
+                fontWeight: 400 
+              }}
+            >
               Vista general de todas las evaluaciones
             </Typography>
           )}
@@ -286,30 +356,101 @@ const RiskAssessment: React.FC = () => {
         </Alert>
       )}
 
-      {/* Tabla de evaluaciones */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Historial de Evaluaciones
-          </Typography>
+      {/* Tabla de evaluaciones con estilos mejorados */}
+      <Card 
+        sx={{ 
+          mb: 3,
+          borderRadius: 3,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          border: '1px solid rgba(37, 99, 235, 0.1)',
+          '&:hover': {
+            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+            transform: 'translateY(-2px)',
+          },
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+        className="hover-lift"
+      >
+        <CardContent sx={{ p: 0 }}>
+          <Box 
+            sx={{ 
+              p: 3, 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white'
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}
+            >
+              <Assessment sx={{ fontSize: 28 }} />
+              Historial de Evaluaciones
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                opacity: 0.9, 
+                mt: 0.5 
+              }}
+            >
+              {requests.length} evaluación{requests.length !== 1 ? 'es' : ''} registrada{requests.length !== 1 ? 's' : ''}
+            </Typography>
+          </Box>
           
-          <TableContainer component={Paper}>
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              borderRadius: 0,
+              boxShadow: 'none'
+            }}
+          >
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  {!companyId && <TableCell>Empresa</TableCell>}
-                  <TableCell>Monto (USD)</TableCell>
-                  <TableCell>Propósito</TableCell>
-                  <TableCell>Puntuación de Riesgo</TableCell>
-                  <TableCell>Nivel de Riesgo</TableCell>
-                  <TableCell>Aprobado</TableCell>
-                  <TableCell>Acciones</TableCell>
+                <TableRow 
+                  sx={{
+                    background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                    '& th': {
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      fontSize: '0.875rem',
+                      borderBottom: '2px solid #e2e8f0',
+                      py: 2
+                    }
+                  }}
+                >
+                  <TableCell>📅 Fecha</TableCell>
+                  {!companyId && <TableCell>🏢 Empresa</TableCell>}
+                  <TableCell>💰 Monto (USD)</TableCell>
+                  <TableCell>📝 Propósito</TableCell>
+                  <TableCell>⭐ Puntuación de Riesgo</TableCell>
+                  <TableCell>🎯 Nivel de Riesgo</TableCell>
+                  <TableCell>✅ Aprobado</TableCell>
+                  <TableCell>⚙️ Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {requests.map((request) => (
-                  <TableRow key={request.id}>
+                  <TableRow 
+                    key={request.id}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(37, 99, 235, 0.04)',
+                        transform: 'scale(1.001)',
+                        transition: 'all 0.2s ease-in-out'
+                      },
+                      '&:nth-of-type(even)': {
+                        backgroundColor: 'rgba(248, 250, 252, 0.5)'
+                      },
+                      cursor: 'pointer'
+                    }}
+                    className="table-row-hover"
+                  >
                     <TableCell>
                       {new Date(request.created_at).toLocaleDateString('es-ES')}
                     </TableCell>
@@ -323,9 +464,43 @@ const RiskAssessment: React.FC = () => {
                     <TableCell>${request.amount.toLocaleString()}</TableCell>
                     <TableCell>{request.purpose}</TableCell>
                     <TableCell>
-                      <Typography variant="h6">
-                        {request.risk_score}/100
-                      </Typography>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1 
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            background: `conic-gradient(
+                              ${request.risk_score <= 30 ? '#10b981' : 
+                                request.risk_score <= 70 ? '#f59e0b' : '#ef4444'} 
+                              ${request.risk_score * 3.6}deg, 
+                              #e5e7eb 0deg
+                            )`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          {request.risk_score}
+                        </Box>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ fontSize: '0.75rem' }}
+                        >
+                          /100
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -342,32 +517,78 @@ const RiskAssessment: React.FC = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Tooltip title="Editar">
-                        <IconButton
-                          onClick={() => handleEdit(request)}
-                          size="small"
-                        >
-                          <Edit />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Eliminar">
-                        <IconButton
-                          onClick={() => handleDeleteClick(request)}
-                          size="small"
-                          color="error"
-                        >
-                          <Delete />
-                        </IconButton>
-                      </Tooltip>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Editar">
+                          <IconButton
+                            onClick={() => handleEdit(request)}
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                              color: '#2563eb',
+                              '&:hover': {
+                                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                transform: 'scale(1.1)',
+                              },
+                              transition: 'all 0.2s ease-in-out'
+                            }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Eliminar">
+                          <IconButton
+                            onClick={() => handleDeleteClick(request)}
+                            size="small"
+                            sx={{
+                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                              color: '#ef4444',
+                              '&:hover': {
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                transform: 'scale(1.1)',
+                              },
+                              transition: 'all 0.2s ease-in-out'
+                            }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
                 {requests.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={companyId ? 7 : 8} align="center">
-                      <Typography variant="body2" color="text.secondary">
-                        No hay evaluaciones de riesgo registradas
-                      </Typography>
+                    <TableCell colSpan={companyId ? 7 : 8} align="center" sx={{ py: 6 }}>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          alignItems: 'center',
+                          gap: 2,
+                          py: 4
+                        }}
+                      >
+                        <Assessment 
+                          sx={{ 
+                            fontSize: 64, 
+                            color: 'text.disabled',
+                            opacity: 0.3
+                          }} 
+                        />
+                        <Typography 
+                          variant="h6" 
+                          color="text.secondary"
+                          sx={{ fontWeight: 400 }}
+                        >
+                          No hay evaluaciones de riesgo registradas
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.disabled"
+                        >
+                          Haz clic en el botón "+" para crear tu primera evaluación
+                        </Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 )}
@@ -377,14 +598,32 @@ const RiskAssessment: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Botón flotante para nueva evaluación */}
+      {/* Botón flotante para nueva evaluación mejorado */}
       <Fab
         color="primary"
         aria-label="add"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        sx={{ 
+          position: 'fixed', 
+          bottom: 24, 
+          right: 24,
+          background: 'linear-gradient(45deg, #2563eb 30%, #10b981 90%)',
+          boxShadow: '0 8px 32px rgba(37, 99, 235, 0.3)',
+          width: 64,
+          height: 64,
+          '&:hover': {
+            background: 'linear-gradient(45deg, #1d4ed8 30%, #059669 90%)',
+            transform: 'scale(1.1)',
+            boxShadow: '0 12px 40px rgba(37, 99, 235, 0.4)',
+          },
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:active': {
+            transform: 'scale(0.95)',
+          }
+        }}
         onClick={() => setOpen(true)}
+        className="floating-action-button"
       >
-        <Add />
+        <Add sx={{ fontSize: 32 }} />
       </Fab>
 
       {/* Dialog para crear/editar evaluación */}
